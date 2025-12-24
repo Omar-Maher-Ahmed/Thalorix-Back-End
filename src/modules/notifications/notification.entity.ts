@@ -1,0 +1,1 @@
+// (type, content, is_read, receiver_id)
