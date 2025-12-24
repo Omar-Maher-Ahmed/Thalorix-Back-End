@@ -1,0 +1,1 @@
+// ليه؟ عشان يبعت إيميلات (Welcome Email, Verify Email, Reset Password). بيستخدم Nodemailer أو SendGrid.
