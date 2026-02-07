@@ -1,3 +1,5 @@
+import { UUID } from "crypto"
+
 export class User {
     firstName: string
     lastName: string
@@ -8,5 +10,5 @@ export class User {
     age: number
     gender: string
     nationalID: string
-    id?: number
+    id?: UUID
 }
