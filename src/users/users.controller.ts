@@ -1,20 +1,31 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { WebsiteSignUpDto, MobileSignUpDto } from './dto/auth.dto';
+import { WebsiteLoginDto, MobileLoginDto } from './dto/auth.dto';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
-  @Post('register')
-  create(@Body() createUserDto: CreateUserDto) {
-    return { message: 'User registered successfully', data: createUserDto };
+  @Post('api/v1/web/register')
+  websiteRegister(@Body() WebsiteSignUpDto: WebsiteSignUpDto) {
+    return { message: 'User registered successfully', data: WebsiteSignUpDto };
   }
-  @Post('login')
-  login(@Body() loginUserDto: LoginUserDto){
-    return { message: 'User logged in successfully', data: loginUserDto};
+
+  @Post('api/v1/mob/register')
+  mobileRegister(@Body() MobileSignUpDto: MobileSignUpDto) {
+    return { message: 'User registered successfully', data: MobileSignUpDto };
+  }
+
+  @Post('api/v1/web/login')
+  websiteLogin(@Body() WebsiteLoginDto: WebsiteLoginDto) {
+    return { message: 'User logged in successfully', data: WebsiteLoginDto };
+  }
+
+  @Post('api/v1/mob/login')
+  mobileLogin(@Body() MobileLoginDto: MobileLoginDto) {
+    return { message: 'User logged in successfully', data: MobileLoginDto };
   }
 
   @Get()
