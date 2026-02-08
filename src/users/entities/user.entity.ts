@@ -1,14 +1,22 @@
-import { UUID } from "crypto"
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
+@Entity()
 export class User {
-    name: string
-    email: string
-    phone: string
-    password: string
-    cPassword: string
-    role: string
-    // age: number
-    // gender: string
-    // nationalID: string
-    id?: UUID
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    @Column()
+    name: string;
+
+    @Column({ unique: true })
+    email: string;
+
+    @Column()
+    phone: string;
+
+    @Column()
+    password: string;
+
+    @Column()
+    role: string;
 }
