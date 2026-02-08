@@ -1,38 +1,45 @@
 import { Injectable } from '@nestjs/common';
 import { WebsiteSignUpDto, MobileSignUpDto, WebsiteLoginDto, MobileLoginDto } from './dto/auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  websiteRegister(WebsiteSignUpDto: WebsiteSignUpDto) {
-    return 'This action adds a new user';
+  async websiteRegister(websiteSignUpDto: WebsiteSignUpDto) {
+    const salt = await bcrypt.genSalt();
+    const hash = await bcrypt.hash(websiteSignUpDto.password, salt);
+    websiteSignUpDto.password = hash;
+    return 'User registered successfully';
   }
 
-  mobileRegister(MobileSignUpDto: MobileSignUpDto) {
-    return 'This action adds a new user';
+  async mobileRegister(mobileSignUpDto: MobileSignUpDto) {
+    const salt = await bcrypt.genSalt();
+    const hash = await bcrypt.hash(mobileSignUpDto.password, salt);
+    mobileSignUpDto.password = hash;
+    return 'User registered successfully';
   }
 
   websiteLogin(WebsiteLoginDto: WebsiteLoginDto) {
-    return 'This action adds a new user';
+    return 'User logged in successfully';
   }
 
   mobileLogin(MobileLoginDto: MobileLoginDto) {
-    return 'This action adds a new user';
+    return 'User logged in successfully';
   }
 
   findAll() {
-    return `This action returns all users`;
+    return `All users`;
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} user`;
+    return `User with id: ${id}`;
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+    return `User with id: ${id} updated successfully`;
   }
 
   remove(id: number) {
-    return `This action removes a #${id} user`;
+    return `User with id: ${id} deleted successfully`;
   }
 }
