@@ -1,10 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { WebsiteSignUpDto, MobileSignUpDto, WebsiteLoginDto, MobileLoginDto } from './dto/auth.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
+  websiteRegister(WebsiteSignUpDto: WebsiteSignUpDto) {
+    return 'This action adds a new user';
+  }
+
+  mobileRegister(MobileSignUpDto: MobileSignUpDto) {
+    return 'This action adds a new user';
+  }
+
+  websiteLogin(WebsiteLoginDto: WebsiteLoginDto) {
+    return 'This action adds a new user';
+  }
+
+  mobileLogin(MobileLoginDto: MobileLoginDto) {
     return 'This action adds a new user';
   }
 
