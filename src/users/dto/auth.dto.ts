@@ -1,6 +1,6 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, IsStrongPassword, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { UUID } from 'crypto';
-// import { Match } from '../decorators/match.decorator'
+import { Match } from '../decorators/match.decorator'
 
 export class WebsiteLoginDto {
     @IsEmail()
@@ -28,12 +28,12 @@ export class MobileLoginDto {
 }
 
 export class WebsiteSignUpDto {
-    id: UUID
+    // id: UUID
 
-    // @IsNotEmpty({ message: 'Name is required' })
-    // @IsString()
-    // @MinLength(2, { message: 'Name is too short' })
-    // name: string;
+    @IsNotEmpty({ message: 'Name is required' })
+    @IsString()
+    @MinLength(2, { message: 'Name is too short' })
+    name: string;
 
     // @IsNotEmpty({ message: 'Username is required' })
     // @IsString()
@@ -56,6 +56,7 @@ export class WebsiteSignUpDto {
     @IsNotEmpty({ message: 'Password is required' })
     @IsString()
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
+    @Match("password", { message: "Confirm password must match password" })
     cPassword: string;// confirm password
 
     // @IsNotEmpty({ message: 'Role is required' })
@@ -65,7 +66,7 @@ export class WebsiteSignUpDto {
 }
 
 export class MobileSignUpDto {
-    id: UUID
+    // id: UUID
 
     @IsNotEmpty({ message: 'Name is required' })
     @IsString()
@@ -95,6 +96,7 @@ export class MobileSignUpDto {
     @IsNotEmpty({ message: 'Password is required' })
     @IsString()
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
+    @Match("password", { message: "Confirm password must match password" })
     cPassword: string;// confirm password
 
     @IsNotEmpty({ message: 'Role is required' })

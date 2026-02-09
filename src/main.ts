@@ -16,17 +16,16 @@ async function bootstrap() {
   // 2. setup Swagger
   const config = new DocumentBuilder()
     .setTitle('Thalorix API Documentation')
-    .setDescription('The API description for my project') // وصف المشروع
-    .setVersion('1.0') // إصدار الـ API
+    .setDescription('The API description for my project')
+    .setVersion('1.0')
     //.addBearerAuth() // ضيف دي لو هتعمل نظام تسجيل دخول لاحقاً
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  
-  // 3. تحديد المسار اللي هيفتح منه سوجر (هنا هيكون localhost:3000/docs)
+
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 5000);
   console.log(`Application is running on: ${await app.getUrl()}/docs`); // رسالة مساعدة في الـ terminal
 }
 bootstrap();
