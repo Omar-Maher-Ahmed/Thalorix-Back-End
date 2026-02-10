@@ -1,17 +1,20 @@
+
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { SignupValidationPipe } from './pips/signup.validation.pipe';
+import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schema/user.schema';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema },
-    ]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    JwtModule.register({
+      secret: 'JWT_SECRET_KEY',
+      signOptions: { expiresIn: '15m' },
+    }),
   ],
   controllers: [UsersController],
-  providers: [UsersService, SignupValidationPipe],
+  providers: [UsersService],
 })
-export class UsersModule { }
+export class UsersModule {}
