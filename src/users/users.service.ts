@@ -124,11 +124,7 @@ export class UsersService {
 
   // ================= Find All =================
   async findAll() {
-    console.log(await this.userModel.countDocuments());
-    return this.userModel.find()
-      .select('name email phone role createdAt')
-      .sort({ createdAt: -1 })
-      .exec();
+    return this.userModel.find();
   }
 
   // ================= Find By Email =================
