@@ -4,8 +4,8 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { User } from './schema/user.schema';
 import {
   WebsiteSignUpDto,
@@ -19,8 +19,8 @@ import { UpdateUserDto } from './dto';
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
   ) { }
 
   // ================= Utils =================
@@ -31,30 +31,25 @@ export class UsersService {
 
   // ================= Register =================
   async websiteRegister(dto: WebsiteSignUpDto) {
-    const emailExists = await this.userRepository.findOne({
-      where: { email: dto.email },
-    });
+    const emailExists = await this.userModel.findOne({ email: dto.email });
 
     if (emailExists) {
       throw new ConflictException('Email already exists');
     }
 
-    const user = this.userRepository.create({
+    const createdUser = new this.userModel({
       name: dto.name,
       email: dto.email,
       phone: dto.phone,
       password: await this.hashPassword(dto.password),
       role: 'user',
     });
-    const savedUser = await this.userRepository.save(user);
 
-
-
-    await this.userRepository.save(user);
+    const savedUser = await createdUser.save();
 
     return {
       message: 'User registered successfully',
-      id: savedUser.id,
+      id: savedUser._id,
       name: savedUser.name,
       email: savedUser.email,
       phone: savedUser.phone,
@@ -64,8 +59,8 @@ export class UsersService {
   }
 
   async mobileRegister(dto: MobileSignUpDto) {
-    const userExists = await this.userRepository.findOne({
-      where: [
+    const userExists = await this.userModel.findOne({
+      $or: [
         { email: dto.email },
         { phone: dto.phone },
       ],
@@ -75,7 +70,7 @@ export class UsersService {
       throw new ConflictException('Email or phone already exists');
     }
 
-    const user = this.userRepository.create({
+    const createdUser = new this.userModel({
       name: dto.name,
       email: dto.email,
       phone: dto.phone,
@@ -83,7 +78,7 @@ export class UsersService {
       role: dto.role,
     });
 
-    await this.userRepository.save(user);
+    await createdUser.save();
 
     return {
       message: 'User registered successfully',
@@ -92,9 +87,7 @@ export class UsersService {
 
   // ================= Login =================
   async websiteLogin(dto: WebsiteLoginDto) {
-    const user = await this.userRepository.findOne({
-      where: { email: dto.email },
-    });
+    const user = await this.userModel.findOne({ email: dto.email });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -107,14 +100,12 @@ export class UsersService {
 
     return {
       message: 'User logged in successfully',
-      userId: user.id,
+      userId: user._id,
     };
   }
 
   async mobileLogin(dto: MobileLoginDto) {
-    const user = await this.userRepository.findOne({
-      where: { phone: dto.contact_number },
-    });
+    const user = await this.userModel.findOne({ phone: dto.contact_number });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -127,32 +118,27 @@ export class UsersService {
 
     return {
       message: 'User logged in successfully',
-      userId: user.id,
+      userId: user._id,
     };
   }
 
   // ================= Find All =================
   async findAll() {
-    console.log(await this.userRepository.count());
-    return this.userRepository.find({
-      select: ['id', 'name', 'email', 'phone', 'role', 'createdAt'],
-      order: { createdAt: 'DESC' },
-    });
+    console.log(await this.userModel.countDocuments());
+    return this.userModel.find()
+      .select('name email phone role createdAt')
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   // ================= Find By Email =================
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({
-      where: { email },
-    });
+    return this.userModel.findOne({ email }).exec();
   }
 
   // ================= Find One =================
   async findOne(id: string) {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      select: ['id', 'name', 'email', 'phone', 'role', 'createdAt'],
-    });
+    const user = await this.userModel.findById(id).select('name email phone role createdAt');
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -163,15 +149,11 @@ export class UsersService {
 
   // ================= Update =================
   async update(id: string, dto: UpdateUserDto) {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userModel.findByIdAndUpdate(id, dto, { new: true });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    Object.assign(user, dto);
-
-    await this.userRepository.save(user);
 
     return {
       message: 'User updated successfully',
@@ -180,13 +162,11 @@ export class UsersService {
 
   // ================= Remove =================
   async remove(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userModel.findByIdAndDelete(id);
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    await this.userRepository.remove(user);
 
     return {
       message: 'User deleted successfully',
