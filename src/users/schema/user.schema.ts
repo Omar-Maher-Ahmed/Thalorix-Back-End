@@ -6,6 +6,8 @@ import { Document } from 'mongoose';
     collection: 'users',
 })
 export class User extends Document {
+    // @Prop({ required: true, unique: true, trim: true })
+    // user_id: string;
 
     @Prop({ required: true, trim: true })
     name: string;
