@@ -13,9 +13,9 @@ import {
   MobileSignUpDto,
   WebsiteLoginDto,
   MobileLoginDto,
-} from './dto/auth.dto';
+} from '../auth/dto/auth.dto';
 import * as bcrypt from 'bcrypt';
-import { UpdateUserDto } from './dto';
+import { UpdateUserDto } from '../auth/dto';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class UsersService {
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   // ================= Utils =================
   private async hashPassword(password: string): Promise<string> {

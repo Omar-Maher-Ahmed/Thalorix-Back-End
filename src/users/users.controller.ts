@@ -17,14 +17,14 @@ import {
   MobileSignUpDto,
   MobileLoginDto,
   WebsiteLoginDto,
-} from './dto';
+} from '../auth/dto';
 
-import { SignupValidationPipe } from './pips/signup.validation.pipe';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { SignupValidationPipe } from '../auth/pips/signup.validation.pipe';
+import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   // ================= Public Routes =================
 
