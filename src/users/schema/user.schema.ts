@@ -1,3 +1,4 @@
+import { Schema } from 'mongoose';
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity()
@@ -26,3 +27,5 @@ export class User {
     @UpdateDateColumn()
     updatedAt: Date;
 }
+
+export const userSchema = new Schema(User);

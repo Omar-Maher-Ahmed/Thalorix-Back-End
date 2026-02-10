@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { User } from './schema/user.schema';
 import {
   WebsiteSignUpDto,
   MobileSignUpDto,
@@ -46,11 +46,20 @@ export class UsersService {
       password: await this.hashPassword(dto.password),
       role: 'user',
     });
+    const savedUser = await this.userRepository.save(user);
+
+
 
     await this.userRepository.save(user);
 
     return {
       message: 'User registered successfully',
+      id: savedUser.id,
+      name: savedUser.name,
+      email: savedUser.email,
+      phone: savedUser.phone,
+      role: savedUser.role,
+      createdAt: savedUser.createdAt,
     };
   }
 
@@ -122,7 +131,9 @@ export class UsersService {
     };
   }
 
+  // ================= Find All =================
   async findAll() {
+    console.log(await this.userRepository.count());
     return this.userRepository.find({
       select: ['id', 'name', 'email', 'phone', 'role', 'createdAt'],
       order: { createdAt: 'DESC' },

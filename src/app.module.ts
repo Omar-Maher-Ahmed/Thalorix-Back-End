@@ -7,28 +7,40 @@ import { TemplatesModule } from './templates/templates.module';
 import { ChatModule } from './chat/chat.module';
 import { CategoriesModule } from './categories/categories.module';
 import { AiModule } from './ai/ai.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
+// import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+// import { User } from './users/entities/user.entity';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRootAsync({
+    MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts}'],
-        synchronize: true,
-      }),
       inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+        retryAttempts: 5,
+        retryDelay: 3000,
+      }),
     }),
+    // TypeOrmModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   useFactory: (configService: ConfigService) => ({
+    //     type: 'postgres',
+    //     host: configService.get<string>('DB_HOST'),
+    //     port: configService.get<number>('DB_PORT'),
+    //     username: configService.get<string>('DB_USERNAME'),
+    //     password: configService.get<string>('DB_PASSWORD'),
+    //     database: configService.get<string>('DB_NAME'),
+    //     entities: [__dirname + '/**/*.entity{.ts,.js}'],
+    //     // entities: [User], // old way
+    //     synchronize: true,
+    //   }),
+    //   inject: [ConfigService],
+    // }),
     UsersModule,
     MarketPlaceModule,
     TemplatesModule,
