@@ -2,10 +2,11 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { UsersService } from './users.service';
 import { UpdateUserDto, WebsiteSignUpDto, MobileSignUpDto, MobileLoginDto, WebsiteLoginDto } from './dto';
 import { SignupValidationPipe } from './pips/signup.validation.pipe';
+import { User } from './schema/user.schema';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) { User }
 
   @Post('api/v1/web/register')
   websiteRegister(@Body(new SignupValidationPipe()) websiteSignUp: WebsiteSignUpDto) {
