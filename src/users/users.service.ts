@@ -25,19 +25,17 @@ export class UsersService {
 
   // ================= Utils =================
   private async hashPassword(password: string): Promise<string> {
-    const salt = await bcrypt.genSalt(10);
-    return bcrypt.hash(password, salt);
+    return bcrypt.hash(password, 10);
   }
 
   // ================= Register =================
   async websiteRegister(dto: WebsiteSignUpDto) {
-    const emailExists = await this.userModel.findOne({ email: dto.email });
 
+    const emailExists = await this.userModel.exists({ email: dto.email });
     if (emailExists) {
       throw new ConflictException('Email already exists');
     }
-
-    const createdUser = new this.userModel({
+    const user = await this.userModel.create({
       name: dto.name,
       email: dto.email,
       phone: dto.phone,
@@ -45,19 +43,10 @@ export class UsersService {
       role: 'user',
     });
 
-    const savedUser = await createdUser.save();
-
     return {
       message: 'User registered successfully',
-      id: savedUser._id,
-      name: savedUser.name,
-      email: savedUser.email,
-      phone: savedUser.phone,
-      role: savedUser.role,
-      createdAt: savedUser.createdAt,
     };
   }
-
   async mobileRegister(dto: MobileSignUpDto) {
     const userExists = await this.userModel.findOne({
       $or: [
