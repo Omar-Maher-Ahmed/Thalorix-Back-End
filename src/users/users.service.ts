@@ -28,7 +28,7 @@ export class UsersService {
     return bcrypt.hash(password, 10);
   }
 
-  // ================= Register =================
+  // ================= Register Website =================
   async websiteRegister(dto: WebsiteSignUpDto) {
 
     const emailExists = await this.userModel.exists({ email: dto.email });
@@ -47,6 +47,8 @@ export class UsersService {
       message: 'User registered successfully',
     };
   }
+
+  // ================= Register Mobile =================
   async mobileRegister(dto: MobileSignUpDto) {
     const userExists = await this.userModel.findOne({
       $or: [
@@ -74,15 +76,15 @@ export class UsersService {
     };
   }
 
-  // ================= Login =================
+  // ================= Login Website =================
   async websiteLogin(dto: WebsiteLoginDto) {
-    const user = await this.userModel.findOne({ email: dto.email });
-
+    const user = await this.userModel.findOne({ email: dto.email }).select('+password');
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.password);
+
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -90,17 +92,22 @@ export class UsersService {
     return {
       message: 'User logged in successfully',
       userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
     };
   }
 
-  async mobileLogin(dto: MobileLoginDto) {
-    const user = await this.userModel.findOne({ email: dto.email, password: dto.password });
+  // ================= Login Mobile =================
 
+  async mobileLogin(dto: MobileLoginDto) {
+    const user = await this.userModel.findOne({ email: dto.email }).select('+password');
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.password);
+
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -108,28 +115,34 @@ export class UsersService {
     return {
       message: 'User logged in successfully',
       userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
     };
   }
 
   // ================= Find All =================
-  async findAll() {
-    return this.userModel.find();
+  async findAll(): Promise<User[]> {
+    return this.userModel
+      .find()
+      .select('-password')
+      .lean();
   }
 
-  // ================= Find By Email =================
-  async findByEmail(email: string): Promise<User | null> {
-    return this.userModel.findOne({ email }).exec();
-  }
+  // // ================= Find By Email =================
+  // async findByEmail(email: string): Promise<User | null> {
+  //   return this.userModel
+  //     .findOne({ email })
+  //     .select('-password')
+  //     .lean();
+  // }
 
   // ================= Find One =================
-  async findOne(id: string) {
-    const user = await this.userModel.findById(id).select('name email phone role createdAt');
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return user;
+  async findById(id: string): Promise<User | null> {
+    return this.userModel
+      .findById(id)
+      .select('-password')
+      .lean();
   }
 
   // ================= Update =================

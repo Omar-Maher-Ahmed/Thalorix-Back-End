@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto, WebsiteSignUpDto, MobileSignUpDto, MobileLoginDto, WebsiteLoginDto } from './dto';
 import { SignupValidationPipe } from './pips/signup.validation.pipe';
@@ -27,27 +27,22 @@ export class UsersController {
     return this.usersService.mobileLogin(mobileLogin);
   }
 
-  @Get()
+  @Get('api/v1/all')
   findAll() {
     return this.usersService.findAll();
   }
 
-  @Get(':id')
+  @Get('api/v1/:id')
   findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+    return this.usersService.findById(id);
   }
 
-  @Get('api/v1/mob/me')
-  findByEmail(@Body() body: { email: string }) {
-    return this.usersService.findByEmail(body.email);
-  }
-
-  @Patch(':id')
+  @Patch('api/v1/:id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
-  @Delete(':id')
+  @Delete('api/v1/:id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
