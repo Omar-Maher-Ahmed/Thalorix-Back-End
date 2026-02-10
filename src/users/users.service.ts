@@ -94,7 +94,7 @@ export class UsersService {
   }
 
   async mobileLogin(dto: MobileLoginDto) {
-    const user = await this.userModel.findOne({ phone: dto.contact_number });
+    const user = await this.userModel.findOne({ email: dto.email, password: dto.password });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');

@@ -1,31 +1,27 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, IsStrongPassword, IsUUID, MaxLength, MinLength } from 'class-validator';
-import { UUID } from 'crypto';
+import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { Match } from '../decorators/match.decorator'
 
 export class WebsiteLoginDto {
     @IsEmail()
-    @IsNotEmpty()
+    @IsNotEmpty({ message: 'Email is required' })
     email: string;
 
     @IsString()
-    @IsNotEmpty()
+    @IsNotEmpty({ message: 'Password is required' })
     //   @MinLength(6, { message: 'Password must be at least 6 characters long.' })
     password: string;
 }
 
 export class MobileLoginDto {
     @IsString()
-    @IsNotEmpty()
-    contact_number: string;
-
-    @IsUUID()
-    vendorId: string;
+    @IsNotEmpty({ message: 'Email is required' })
+    email: string;
 
     @IsString()
-    @IsNotEmpty()
-    //   @MinLength(6, { message: 'Password must be at least 6 characters long.' })
+    @IsNotEmpty({ message: 'Password is required' })
     password: string;
 }
+
 
 export class WebsiteSignUpDto {
     // id: UUID
