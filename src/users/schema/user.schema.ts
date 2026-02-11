@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { Roles } from 'src/auth/enums/roles.enum';
 
 @Schema({
     timestamps: true,
@@ -21,8 +22,8 @@ export class User extends Document {
     @Prop({ required: false })
     password: string;
 
-    @Prop({ default: 'user' })
-    role: string;
+    @Prop({ type: String, enum: [Roles.Admin, Roles.User, Roles.Seller], default: Roles.User, })
+    role: Roles;
 
     @Prop({ required: false })
     refreshToken: string;

@@ -24,6 +24,9 @@ import {
 
 import { SignupValidationPipe } from '../auth/pips/signup.validation.pipe';
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
+import { Roles } from 'src/auth/enums/roles.enum';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Role } from 'src/auth/decorators/roles.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -78,8 +81,9 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Delete('api/v1/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Role(Roles.Admin)
+  @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
