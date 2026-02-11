@@ -17,6 +17,9 @@ import {
   MobileSignUpDto,
   MobileLoginDto,
   WebsiteLoginDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  VerifyEmailDto,
 } from '../auth/dto';
 
 import { SignupValidationPipe } from '../auth/pips/signup.validation.pipe';
@@ -48,7 +51,7 @@ export class UsersController {
   }
 
   @Post('api/v1/mob/login')
-  mobileLogin(@Body() mobileLogin: MobileLoginDto) {
+  async mobileLogin(@Body() mobileLogin: MobileLoginDto) {
     return this.usersService.mobileLogin(mobileLogin);
   }
 

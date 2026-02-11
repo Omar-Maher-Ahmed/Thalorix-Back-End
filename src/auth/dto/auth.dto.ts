@@ -151,3 +151,32 @@ export class MobileSignUpDto {
 //     @IsStrongPassword()
 //     password: string;
 // }
+
+export class ForgotPasswordDto {
+    @IsNotEmpty({ message: 'Email is required' })
+    @IsEmail({}, { message: 'Invalid email format' })
+    email: string;
+}
+
+export class ResetPasswordDto {
+    @IsString()
+    @IsNotEmpty({ message: "Token is required" })
+    token: string;
+
+    @IsNotEmpty({ message: 'Password is required' })
+    @IsString()
+    @MinLength(8, { message: 'Password must be at least 8 characters long' })
+    password: string;
+
+    @IsNotEmpty({ message: 'Confirm Password is required' })
+    @IsString()
+    @MinLength(8, { message: 'Password must be at least 8 characters long' })
+    @Match("password", { message: "Confirm password must match password" })
+    cPassword: string; // confirm password
+}
+
+export class VerifyEmailDto {
+    @IsString()
+    @IsNotEmpty({ message: "Token is required" })
+    token: string;
+}

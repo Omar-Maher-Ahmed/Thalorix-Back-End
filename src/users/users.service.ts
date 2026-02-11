@@ -17,6 +17,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { UpdateUserDto } from '../auth/dto';
 import { JwtService } from '@nestjs/jwt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -38,13 +39,19 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
 
-    await this.userModel.create({
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    const newUser = await this.userModel.create({
       name: dto.name,
       email: dto.email,
       phone: dto.phone,
       password: await this.hashPassword(dto.password),
       role: 'user',
+      verificationToken,
+      verificationTokenExpires,
     });
+
 
     return { message: 'User registered successfully' };
   }
@@ -59,12 +66,17 @@ export class UsersService {
       throw new ConflictException('Email or phone already exists');
     }
 
-    await this.userModel.create({
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const newUser = await this.userModel.create({
       name: dto.name,
       email: dto.email,
       phone: dto.phone,
       password: await this.hashPassword(dto.password),
       role: dto.role,
+      verificationToken,
+      verificationTokenExpires,
     });
 
     return { message: 'User registered successfully' };
