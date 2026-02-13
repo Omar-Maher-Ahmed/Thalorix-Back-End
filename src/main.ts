@@ -25,7 +25,7 @@ async function bootstrap() {
 
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(process.env.PORT ?? 5000);
-  console.log(`Application is running on: ${await app.getUrl()}/docs`); // رسالة مساعدة في الـ terminal
+  await app.listen(process.env.PORT ?? 5001);
+  console.log(`Application is running on: ${await app.getUrl()}/docs`);
 }
 bootstrap();

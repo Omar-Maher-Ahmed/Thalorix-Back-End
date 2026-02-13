@@ -1,10 +1,3 @@
-// export class CreateMarketPlaceDto {
-//   title: string;
-//   description?: string;
-//   price: number;
-//   images?: string[];
-//   category?: string;
-// }
 import {
   IsString,
   IsNotEmpty,
@@ -15,7 +8,6 @@ import {
   IsOptional,
   IsArray,
   IsMongoId,
-  ArrayNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -24,7 +16,7 @@ export class CreateMarketPlaceDto {
   @IsNotEmpty()
   @MinLength(3)
   @MaxLength(120)
-  title: string;
+  name: string;
 
   @IsOptional()
   @IsString()

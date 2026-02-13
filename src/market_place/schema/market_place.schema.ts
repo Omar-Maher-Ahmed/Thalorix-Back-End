@@ -10,15 +10,15 @@ export type MarketPlaceDocument = MarketPlace & Document;
 export class MarketPlace {
   @Prop({
     required: true,
-    trim: true,
+    trim: true, // to remove whitespace from both ends of a string
     minlength: 3,
     maxlength: 120,
     index: true,
   })
-  title: string;
+  name: string;
 
   @Prop({
-    trim: true,
+    trim: true, // to remove whitespace from both ends of a string
     maxlength: 2000,
   })
   description?: string;
@@ -57,6 +57,6 @@ export class MarketPlace {
 }
 
 export const MarketPlaceSchema = SchemaFactory.createForClass(MarketPlace);
-MarketPlaceSchema.index({ title: 'text', description: 'text' });
+MarketPlaceSchema.index({ name: 'text', description: 'text' });
 
 

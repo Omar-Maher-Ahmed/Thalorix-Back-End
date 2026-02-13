@@ -8,7 +8,6 @@ export class WebsiteLoginDto {
 
     @IsString()
     @IsNotEmpty({ message: 'Password is required' })
-    //   @MinLength(6, { message: 'Password must be at least 6 characters long.' })
     password: string;
 }
 
@@ -24,17 +23,10 @@ export class MobileLoginDto {
 
 
 export class WebsiteSignUpDto {
-    // id: UUID
-
     @IsNotEmpty({ message: 'Name is required' })
     @IsString()
     @MinLength(2, { message: 'Name is too short' })
     name: string;
-
-    // @IsNotEmpty({ message: 'Username is required' })
-    // @IsString()
-    // @MinLength(2, { message: 'Username is too short' })
-    // username: string;
 
     @IsNotEmpty({ message: 'Email is required' })
     @IsEmail({}, { message: 'Invalid email format' })
@@ -55,9 +47,9 @@ export class WebsiteSignUpDto {
     @Match("password", { message: "Confirm password must match password" })
     cPassword: string;// confirm password
 
-    // @IsNotEmpty({ message: 'Role is required' })
-    // @IsEnum(['admin', 'user', 'manager'], { message: 'Invalid role selection' })
-    // role: string;
+    @IsNotEmpty({ message: 'Role is required' })
+    @IsEnum(['admin', 'user', 'manager'], { message: 'Invalid role selection' })
+    role: string = 'user';
 
 }
 
@@ -69,13 +61,6 @@ export class MobileSignUpDto {
     @MinLength(2, { message: 'Name is too short' })
     name: string;
 
-
-    // @IsNotEmpty({ message: 'Username is required' })
-    // @IsString()
-    // @MinLength(2, { message: 'Username is too short' })
-    // username: string;
-
-    // @IsUnique({ message: 'Username already exists' })
     @IsNotEmpty({ message: 'Email is required' })
     @IsEmail({}, { message: 'Invalid email format' })
     email: string;
@@ -101,6 +86,37 @@ export class MobileSignUpDto {
 
 
 }
+
+
+export class ForgotPasswordDto {
+    @IsNotEmpty({ message: 'Email is required' })
+    @IsEmail({}, { message: 'Invalid email format' })
+    email: string;
+}
+
+export class ResetPasswordDto {
+    @IsString()
+    @IsNotEmpty({ message: "Token is required" })
+    token: string;
+
+    @IsNotEmpty({ message: 'Password is required' })
+    @IsString()
+    @MinLength(8, { message: 'Password must be at least 8 characters long' })
+    password: string;
+
+    @IsNotEmpty({ message: 'Confirm Password is required' })
+    @IsString()
+    @MinLength(8, { message: 'Password must be at least 8 characters long' })
+    @Match("password", { message: "Confirm password must match password" })
+    cPassword: string; // confirm password
+}
+
+export class VerifyEmailDto {
+    @IsString()
+    @IsNotEmpty({ message: "Token is required" })
+    token: string;
+}
+
 
 // export class PanelForgotPasswordDto {
 
@@ -142,41 +158,3 @@ export class MobileSignUpDto {
 //     @IsUUID()
 //     patientId: string;
 // }
-
-
-// export class WebsitePasswordDTO {
-
-//     @IsString()
-//     @IsNotEmpty()
-//     @IsStrongPassword()
-//     password: string;
-// }
-
-export class ForgotPasswordDto {
-    @IsNotEmpty({ message: 'Email is required' })
-    @IsEmail({}, { message: 'Invalid email format' })
-    email: string;
-}
-
-export class ResetPasswordDto {
-    @IsString()
-    @IsNotEmpty({ message: "Token is required" })
-    token: string;
-
-    @IsNotEmpty({ message: 'Password is required' })
-    @IsString()
-    @MinLength(8, { message: 'Password must be at least 8 characters long' })
-    password: string;
-
-    @IsNotEmpty({ message: 'Confirm Password is required' })
-    @IsString()
-    @MinLength(8, { message: 'Password must be at least 8 characters long' })
-    @Match("password", { message: "Confirm password must match password" })
-    cPassword: string; // confirm password
-}
-
-export class VerifyEmailDto {
-    @IsString()
-    @IsNotEmpty({ message: "Token is required" })
-    token: string;
-}
