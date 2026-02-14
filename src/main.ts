@@ -5,6 +5,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  app.setGlobalPrefix('api/v1');
 
   // Validation settings
   app.useGlobalPipes(new ValidationPipe({
