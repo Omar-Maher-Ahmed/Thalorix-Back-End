@@ -13,16 +13,8 @@ import {
 import { UsersService } from './users.service';
 import {
   UpdateUserDto,
-  WebsiteSignUpDto,
-  MobileSignUpDto,
-  MobileLoginDto,
-  WebsiteLoginDto,
-  ForgotPasswordDto,
-  ResetPasswordDto,
-  VerifyEmailDto,
 } from '../auth/dto';
 
-import { SignupValidationPipe } from '../auth/pips/signup.validation.pipe';
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { Roles } from 'src/auth/enums/roles.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';

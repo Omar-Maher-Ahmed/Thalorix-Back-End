@@ -47,7 +47,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     ChatModule,
     CategoriesModule,
     AiModule,
-  
+
   ],
   controllers: [AppController],
   providers: [AppService],

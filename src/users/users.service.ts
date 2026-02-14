@@ -1,30 +1,19 @@
-
 import {
   Injectable,
-  UnauthorizedException,
-  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schema/user.schema';
 import {
-  WebsiteSignUpDto,
-  MobileSignUpDto,
-  WebsiteLoginDto,
-  MobileLoginDto,
-} from '../auth/dto/auth.dto';
-import * as bcrypt from 'bcrypt';
-import { UpdateUserDto } from '../auth/dto';
-import { JwtService } from '@nestjs/jwt';
-import * as crypto from 'crypto';
+  UpdateUserDto,
+} from '../auth/dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
-    private readonly jwtService: JwtService,
   ) { }
   // ================= Find All =================
   async findAll(): Promise<User[]> {

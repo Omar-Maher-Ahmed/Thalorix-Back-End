@@ -13,7 +13,7 @@ import {
     MobileSignUpDto,
     WebsiteLoginDto,
     MobileLoginDto,
-} from '../auth/dto/auth.dto';
+} from '../auth/dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';

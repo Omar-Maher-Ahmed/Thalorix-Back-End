@@ -1,55 +1,42 @@
-
 import {
   Controller,
-  Get,
   Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
+  Body
 } from '@nestjs/common';
-
-import { UsersService } from './users.service';
+import { AuthService } from './auth.service';
 import {
-  UpdateUserDto,
   WebsiteSignUpDto,
   MobileSignUpDto,
   MobileLoginDto,
-  WebsiteLoginDto,
-  ForgotPasswordDto,
-  ResetPasswordDto,
-  VerifyEmailDto,
+  WebsiteLoginDto
 } from '../auth/dto';
-
 import { SignupValidationPipe } from '../auth/pips/signup.validation.pipe';
-import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
-import { Roles } from 'src/auth/enums/roles.enum';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Role } from 'src/auth/decorators/roles.decorator';
 
-
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) { }
 
   @Post('api/v1/web/register')
   websiteRegister(
     @Body(new SignupValidationPipe()) websiteSignUp: WebsiteSignUpDto,
   ) {
-    return this.usersService.websiteRegister(websiteSignUp);
+    return this.authService.websiteRegister(websiteSignUp);
   }
 
   @Post('api/v1/mob/register')
   mobileRegister(
     @Body(new SignupValidationPipe()) mobileSignUp: MobileSignUpDto,
   ) {
-    return this.usersService.mobileRegister(mobileSignUp);
+    return this.authService.mobileRegister(mobileSignUp);
   }
 
   @Post('api/v1/web/login')
   websiteLogin(@Body() websiteLogin: WebsiteLoginDto) {
-    return this.usersService.websiteLogin(websiteLogin);
+    return this.authService.websiteLogin(websiteLogin);
   }
 
   @Post('api/v1/mob/login')
   async mobileLogin(@Body() mobileLogin: MobileLoginDto) {
-    return this.usersService.mobileLogin(mobileLogin);
+    return this.authService.mobileLogin(mobileLogin);
   }
+}
