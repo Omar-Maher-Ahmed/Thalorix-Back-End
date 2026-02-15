@@ -31,9 +31,17 @@ export class AuthService {
 
     // ================= Register Website =================
     async websiteRegister(dto: WebsiteSignUpDto) {
-        const emailExists = await this.userModel.exists({ email: dto.email });
-        if (emailExists) {
-            throw new ConflictException('Email already exists');
+        const userData = await this.userModel.findOne({
+            $or: [{ email: dto.email }, { phone: dto.phone }],
+        });
+
+        if (userData) {
+            if (userData.email === dto.email) {
+                throw new ConflictException('Email already exists');
+            }
+            if (userData.phone === dto.phone) {
+                throw new ConflictException('Phone already exists');
+            }
         }
 
         const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -55,12 +63,17 @@ export class AuthService {
 
     // ================= Register Mobile =================
     async mobileRegister(dto: MobileSignUpDto) {
-        const userExists = await this.userModel.findOne({
+        const userData = await this.userModel.findOne({
             $or: [{ email: dto.email }, { phone: dto.phone }],
         });
 
-        if (userExists) {
-            throw new ConflictException('Email or phone already exists');
+        if (userData) {
+            if (userData.email === dto.email) {
+                throw new ConflictException('Email already exists');
+            }
+            if (userData.phone === dto.phone) {
+                throw new ConflictException('Phone already exists');
+            }
         }
 
         const verificationToken = crypto.randomBytes(32).toString('hex');
