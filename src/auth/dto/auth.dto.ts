@@ -1,5 +1,8 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
+import sanitizeHtml from 'sanitize-html';
 import { Match } from '../decorators/match.decorator'
+import { Transform } from 'class-transformer';
+import { BadRequestException } from '@nestjs/common';
 
 export class WebsiteLoginDto {
     @IsEmail()
@@ -23,13 +26,27 @@ export class MobileLoginDto {
 
 
 export class WebsiteSignUpDto {
+    @Matches(/^[\u0600-\u06FFa-zA-Z\s]+$/, {
+        message: 'Name must contain only letters (Arabic or English) without numbers or symbols'
+    })
     @IsNotEmpty({ message: 'Name is required' })
-    @IsString()
-    @MinLength(2, { message: 'Name is too short' })
+    @Transform(({ value }) => {
+        let cleaned = sanitizeHtml(value, {
+            allowedTags: [],
+            allowedAttributes: {}
+        });
+        cleaned = cleaned.replace(/[^\u0600-\u06FFa-zA-Z\s]/g, '');
+        cleaned = cleaned.replace(/\s+/g, ' ').trim();
+        if (!cleaned || cleaned.length < 3) {
+            throw new BadRequestException('Name is too short');
+        }
+        return cleaned;
+    })
     name: string;
 
-    @IsNotEmpty({ message: 'Email is required' })
     @IsEmail({}, { message: 'Invalid email format' })
+    @IsNotEmpty({ message: 'Email is required' })
+    @Transform(({ value }) => value?.toLowerCase().trim())
     email: string;
 
     @IsNotEmpty({ message: 'Phone number is required' })
@@ -54,7 +71,6 @@ export class WebsiteSignUpDto {
 }
 
 export class MobileSignUpDto {
-    // id: UUID
 
     @IsNotEmpty({ message: 'Name is required' })
     @IsString()
