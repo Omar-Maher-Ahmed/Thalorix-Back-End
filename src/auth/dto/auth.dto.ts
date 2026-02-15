@@ -76,9 +76,26 @@ export class WebsiteSignUpDto {
 
 export class MobileSignUpDto {
 
+    @Transform(({ value }) => {
+        let cleaned = String(value)
+            .replace(/<[^>]*>/g, '')
+            .replace(/[^\u0600-\u06FFa-zA-Z\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (!cleaned) {
+            throw new BadRequestException('Name is invalid after cleaning');
+        }
+        console.log('2. Cleaned value:', cleaned);
+        return cleaned;
+    })
+    @IsString({ message: 'Name must be a string' })
     @IsNotEmpty({ message: 'Name is required' })
-    @IsString()
-    @MinLength(2, { message: 'Name is too short' })
+    @MinLength(3, { message: 'Name is too short' })
+    @MaxLength(20, { message: 'Name is too long' })
+    @Matches(/^[\u0600-\u06FFa-zA-Z]+(?:\s[\u0600-\u06FFa-zA-Z]+)*$/, {
+        message: 'Name must contain only letters (Arabic or English) without numbers or symbols'
+    })
     name: string;
 
     @IsNotEmpty({ message: 'Email is required' })
