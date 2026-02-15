@@ -26,21 +26,25 @@ export class MobileLoginDto {
 
 
 export class WebsiteSignUpDto {
-    @Matches(/^[\u0600-\u06FFa-zA-Z\s]+$/, {
-        message: 'Name must contain only letters (Arabic or English) without numbers or symbols'
-    })
-    @IsNotEmpty({ message: 'Name is required' })
     @Transform(({ value }) => {
-        let cleaned = sanitizeHtml(value, {
-            allowedTags: [],
-            allowedAttributes: {}
-        });
-        cleaned = cleaned.replace(/[^\u0600-\u06FFa-zA-Z\s]/g, '');
-        cleaned = cleaned.replace(/\s+/g, ' ').trim();
-        if (!cleaned || cleaned.length < 3) {
-            throw new BadRequestException('Name is too short');
+        let cleaned = String(value)
+            .replace(/<[^>]*>/g, '')
+            .replace(/[^\u0600-\u06FFa-zA-Z\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (!cleaned) {
+            throw new BadRequestException('Name is invalid after cleaning');
         }
+        console.log('2. Cleaned value:', cleaned);
         return cleaned;
+    })
+    @IsString({ message: 'Name must be a string' })
+    @IsNotEmpty({ message: 'Name is required' })
+    @MinLength(3, { message: 'Name is too short' })
+    @MaxLength(20, { message: 'Name is too long' })
+    @Matches(/^[\u0600-\u06FFa-zA-Z]+(?:\s[\u0600-\u06FFa-zA-Z]+)*$/, {
+        message: 'Name must contain only letters (Arabic or English) without numbers or symbols'
     })
     name: string;
 
