@@ -12,6 +12,7 @@ import {
 
 import { UsersService } from './users.service';
 import {
+  ForgotPasswordDto,
   UpdateUserDto,
 } from '../auth/dto';
 
@@ -26,21 +27,25 @@ export class UsersController {
 
 
   // ================= Protected Routes =================
+  @Post('forgot-password')
+  forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.usersService.forgotPassword(forgotPasswordDto);
+  }
 
   @UseGuards(JwtAuthGuard)
-  @Get('api/v1/all')
+  @Get('')
   findAll() {
     return this.usersService.findAll();
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('api/v1/:id')
+  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Patch('api/v1/:id')
+  @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
