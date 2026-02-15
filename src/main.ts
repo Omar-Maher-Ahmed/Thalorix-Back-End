@@ -1,10 +1,34 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ArgumentsHost, BadRequestException, ExceptionFilter, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as helmet from 'helmet';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  app.use(express.json({
+    verify: (req: any, res, buf) => {
+      // افحص الـ body قبل المعالجة
+      const body = buf.toString();
+
+      // لو فيه HTML tags
+      if (body.match(/<[^>]*>/g)) {
+        throw new BadRequestException('HTML tags are not allowed');
+      }
+
+      // لو فيه JavaScript events
+      if (body.match(/\bon\w+\s*=/gi)) {
+        throw new BadRequestException('Event handlers are not allowed');
+      }
+
+      // لو فيه javascript protocol
+      if (body.match(/javascript:/gi)) {
+        throw new BadRequestException('JavaScript protocol is not allowed');
+      }
+    }
+  }));
+  app.use(helmet.default());
   app.setGlobalPrefix('api/v1');
 
   // Validation settings
@@ -13,6 +37,24 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
     transform: true,
   }));
+  app.useGlobalFilters(new (class implements ExceptionFilter {
+    catch(exception: any, host: ArgumentsHost) {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse();
+
+      // لو Internal Server Error
+      if (exception.status === 500 || !exception.status) {
+        return response.status(400).json({
+          statusCode: 400,
+          message: 'Invalid input format',
+          error: 'Bad Request'
+        });
+      }
+
+      // غيره كده زي ما هو
+      response.status(exception.status).json(exception.response);
+    }
+  })());
 
   // 2. setup Swagger
   const config = new DocumentBuilder()

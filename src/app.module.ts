@@ -12,9 +12,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 // import { User } from './users/entities/user.entity';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([{
+      ttl: 60000,      // دقيقة واحدة
+      limit: 5,        // 5 محاولات بس
+    }]),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -52,6 +58,6 @@ import { AuthModule } from './auth/auth.module';
 
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule { }
