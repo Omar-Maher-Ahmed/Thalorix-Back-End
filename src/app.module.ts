@@ -11,6 +11,7 @@ import { AiModule } from './ai/ai.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 // import { User } from './users/entities/user.entity';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     //   inject: [ConfigService],
     // }),
     UsersModule,
+    AuthModule,
     MarketPlaceModule,
     TemplatesModule,
     ChatModule,

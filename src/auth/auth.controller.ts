@@ -11,7 +11,9 @@ import {
   WebsiteLoginDto
 } from '../auth/dto';
 import { SignupValidationPipe } from '../auth/pips/signup.validation.pipe';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
