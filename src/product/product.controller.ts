@@ -19,12 +19,12 @@ export class ProductController {
 
     @Get(':id')
     findOne(@Param('id') id: string) {
-        return this.productService.findOne('id');
+        return this.productService.findOne(id);
     }
 
     @Patch(':id')
     update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-        return this.productService.update('id', updateProductDto);
+        return this.productService.update(id, updateProductDto);
     }
 
     @Delete(':id')
