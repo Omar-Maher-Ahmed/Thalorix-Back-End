@@ -94,11 +94,16 @@ export class AuthService {
             // Hash and store refresh token
             console.log('14. Hashing refresh token...');
             const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+            // ✅ التعديل هنا: خزن الـ accessToken كمان
             user.refreshToken = hashedRefreshToken;
+            user.currentAccessToken = accessToken; // <-- ضيف السطر ده
             user.lastLoginAt = new Date();
             user.loginAttempts = 0;
 
-            console.log('15. Saving user...');
+            console.log('15. Saving user with tokens...');
+            console.log('   - Refresh token saved:', !!hashedRefreshToken);
+            console.log('   - Access token saved:', !!accessToken);
             await user.save();
             console.log('16. User saved successfully');
 
@@ -143,48 +148,124 @@ export class AuthService {
     }
     // ================= Login Mobile =================
     async mobileLogin(dto: MobileLoginDto) {
-        const user = await this.userModel
-            .findOne({ email: dto.email })
-            .select('+password');
+        try {
+            console.log('1. Starting login process for email:', dto.email);
 
-        if (!user) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
+            // Validate input
+            if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
+                console.log('2. Invalid input types');
+                throw new UnauthorizedException('Invalid credentials');
+            }
 
-        const isMatch = await bcrypt.compare(dto.password, user.password);
-        if (!isMatch) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
+            const email = dto.email.toLowerCase().trim();
+            console.log('3. Normalized email:', email);
 
-        const payload = {
-            sub: user._id,
-            email: user.email,
-            role: user.role,
-        };
+            // Find user with password field
+            console.log('4. Looking for user in database...');
+            const user = await this.userModel
+                .findOne({ email })
+                .select('+password');
 
-        const accessToken = this.jwtService.sign(payload, {
-            expiresIn: '15m',
-        });
+            console.log('5. User found:', user ? 'Yes' : 'No');
 
-        const refreshToken = this.jwtService.sign(payload, {
-            expiresIn: '7d',
-        });
+            if (!user) {
+                console.log('6. User not found');
+                throw new UnauthorizedException('Invalid credentials');
+            }
 
-        // حفظ refresh token
-        user.refreshToken = refreshToken;
-        await user.save();
+            // Verify password
+            console.log('7. Comparing passwords...');
+            const isMatch = await bcrypt.compare(dto.password, user.password);
+            console.log('8. Password match:', isMatch);
 
-        return {
-            message: 'User logged in successfully',
-            accessToken,
-            refreshToken,
-            user: {
-                id: user._id,
-                name: user.name,
+            if (!isMatch) {
+                console.log('9. Password mismatch');
+                throw new UnauthorizedException('Invalid credentials');
+            }
+
+            // Check if account is blocked/deleted
+            console.log('10. Checking account status - Blocked:', user.isBlocked, 'Deleted:', user.isDeleted);
+            if (user.isBlocked || user.isDeleted) {
+                console.log('11. Account blocked or deleted');
+                throw new UnauthorizedException('Account is not available');
+            }
+
+            console.log('12. Generating tokens...');
+            // Create JWT payload
+            const payload = {
+                sub: user._id.toString(),
                 email: user.email,
                 role: user.role,
-            },
-        };
+                jti: crypto.randomBytes(16).toString('hex')
+            };
+
+            // Generate tokens
+            const accessToken = this.jwtService.sign(payload, {
+                expiresIn: '15m',
+                secret: process.env.JWT_ACCESS_SECRET || 'access-secret'
+            });
+
+            const refreshToken = this.jwtService.sign(payload, {
+                expiresIn: '7d',
+                secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret'
+            });
+
+            console.log('13. Tokens generated successfully');
+
+            // Hash and store refresh token
+            console.log('14. Hashing refresh token...');
+            const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+            // ✅ التعديل هنا: خزن الـ accessToken كمان
+            user.refreshToken = hashedRefreshToken;
+            user.currentAccessToken = accessToken; // <-- ضيف السطر ده
+            user.lastLoginAt = new Date();
+            user.loginAttempts = 0;
+
+            console.log('15. Saving user with tokens...');
+            console.log('   - Refresh token saved:', !!hashedRefreshToken);
+            console.log('   - Access token saved:', !!accessToken);
+            await user.save();
+            console.log('16. User saved successfully');
+
+            // Return success response
+            return {
+                message: 'User logged in successfully',
+                accessToken,
+                refreshToken,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                },
+            };
+
+        } catch (error) {
+            // Print FULL error details
+            console.log('========== ERROR DETAILS ==========');
+            console.log('Error name:', error.name);
+            console.log('Error message:', error.message);
+            console.log('Error stack:', error.stack);
+            console.log('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            console.log('===================================');
+
+            // Update login attempts
+            if (dto.email) {
+                try {
+                    await this.userModel.updateOne(
+                        { email: dto.email.toLowerCase().trim() },
+                        { $inc: { loginAttempts: 1 } }
+                    );
+                    console.log('Login attempts updated for:', dto.email);
+                } catch (updateError) {
+                    console.log('Failed to update login attempts:', updateError.message);
+                }
+            }
+
+            // Re-throw the error
+            throw error;
+        }
     }
 
     // ================= Refresh Access Token =================
@@ -246,20 +327,31 @@ export class AuthService {
     }
 
     // ================= Logout =================
+    // async logout(userId: string) {
+    //     try {
+    //         await this.userModel.updateOne(
+    //             { _id: userId },
+    //             { $unset: { refreshToken: 1 } }
+    //         );
+
+    //         return { message: 'Logged out successfully' };
+    //     } catch (error) {
+    //         console.error('Logout error:', error.message);
+    //         throw new UnauthorizedException('Logout failed');
+    //     }
+    // }
     async logout(userId: string) {
-        try {
-            await this.userModel.updateOne(
-                { _id: userId },
-                { $unset: { refreshToken: 1 } }
-            );
-
-            return { message: 'Logged out successfully' };
-        } catch (error) {
-            console.error('Logout error:', error.message);
-            throw new UnauthorizedException('Logout failed');
-        }
+        await this.userModel.updateOne(
+            { _id: userId },
+            {
+                $unset: {
+                    currentAccessToken: 1, // امسح access token
+                    refreshToken: 1        // امسح refresh token كمان
+                }
+            }
+        );
+        return { message: 'Logged out successfully' };
     }
-
     // ================= Utils =================
     private async hashPassword(password: string): Promise<string> {
         return bcrypt.hash(password, 10);

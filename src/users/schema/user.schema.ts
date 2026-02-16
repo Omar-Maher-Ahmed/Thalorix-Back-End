@@ -64,6 +64,12 @@ export class User extends Document {
 
     @Prop({ default: false })
     isDeleted: boolean;
+
+    @Prop({ select: false, default: null }) // مخفي وممكن يكون null
+    currentAccessToken?: string; // هنخزن الـ accessToken الحالي
+
+    @Prop({ default: [] })
+    tokenVersion: number; // لو عاوز تلغي كل التوكنز دفعة واحدة
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
