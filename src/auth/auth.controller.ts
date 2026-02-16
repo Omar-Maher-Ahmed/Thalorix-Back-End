@@ -24,7 +24,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
   @Post('web/register')
-  @Throttle({ default: { limit: 2, ttl: 60000 } })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   async signup(@Body() websiteSignUp: WebsiteSignUpDto) {
     // تنظيف إضافي يدوي
     if (websiteSignUp.name) {
@@ -46,7 +46,7 @@ export class AuthController {
   }
 
   @Post('mob/register')
-  @Throttle({ default: { limit: 2, ttl: 60000 } })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   mobileRegister(
     @Body(new SignupValidationPipe()) mobileSignUp: MobileSignUpDto,
   ) {
@@ -54,23 +54,25 @@ export class AuthController {
   }
 
   @Post('web/login')
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   websiteLogin(@Body() websiteLogin: WebsiteLoginDto) {
     return this.authService.websiteLogin(websiteLogin);
   }
 
   @Post('mob/login')
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async mobileLogin(@Body() mobileLogin: MobileLoginDto) {
     return this.authService.mobileLogin(mobileLogin);
   }
 
   @Post('refresh')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async refresh(@Body('refreshToken') refreshToken: string) {
     return this.authService.refreshAccessToken(refreshToken);
   }
 
   @Post('logout')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @UseGuards(AuthGuard('jwt'))
   async logout(@Request() req) {
     return this.authService.logout(req.user.sub);

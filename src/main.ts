@@ -11,17 +11,14 @@ async function bootstrap() {
     verify: (req: any, res, buf) => {
       // افحص الـ body قبل المعالجة
       const body = buf.toString();
-
       // لو فيه HTML tags
       if (body.match(/<[^>]*>/g)) {
         throw new BadRequestException('HTML tags are not allowed');
       }
-
       // لو فيه JavaScript events
       if (body.match(/\bon\w+\s*=/gi)) {
         throw new BadRequestException('Event handlers are not allowed');
       }
-
       // لو فيه javascript protocol
       if (body.match(/javascript:/gi)) {
         throw new BadRequestException('JavaScript protocol is not allowed');
@@ -36,6 +33,7 @@ async function bootstrap() {
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
+    errorHttpStatusCode: 400,
   }));
   app.useGlobalFilters(new (class implements ExceptionFilter {
     catch(exception: any, host: ArgumentsHost) {
