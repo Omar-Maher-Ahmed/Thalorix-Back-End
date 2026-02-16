@@ -26,31 +26,114 @@ export class AuthService {
     ) { }
 
     // ================= Login Website =================
+    // async websiteLogin(dto: WebsiteLoginDto) {
+    //     try {
+    //         if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
+    //             throw new UnauthorizedException('Invalid credentials');
+    //         }
+    //         const email = dto.email.toLowerCase().trim();
+    //         const user = await this.userModel
+    //             .findOne({ email: email })
+    //             .select('+password');
+    //         if (!user) {
+    //             throw new UnauthorizedException('Invalid credentials');
+    //         }
+    //         const isMatch = await bcrypt.compare(dto.password, user.password);
+    //         if (!isMatch) {
+    //             throw new UnauthorizedException('Invalid credentials');
+    //         }
+    //         if (user.isBlocked || user.isDeleted) {
+    //             throw new UnauthorizedException('Account is not available');
+    //         }
+    //         const payload = {
+    //             sub: user._id.toString(),
+    //             email: user.email,
+    //             role: user.role,
+    //             jti: crypto.randomBytes(16).toString('hex')
+    //         };
+    //         const accessToken = this.jwtService.sign(payload, {
+    //             expiresIn: '15m',
+    //             secret: process.env.JWT_ACCESS_SECRET || 'access-secret'
+    //         });
+    //         const refreshToken = this.jwtService.sign(payload, {
+    //             expiresIn: '7d',
+    //             secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret'
+    //         });
+    //         const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    //         user.refreshToken = hashedRefreshToken;
+    //         user.lastLoginAt = new Date();
+    //         user.loginAttempts = 0;
+    //         await user.save();
+    //         return {
+    //             message: 'User logged in successfully',
+    //             accessToken,
+    //             refreshToken,
+    //             user: {
+    //                 id: user._id,
+    //                 name: user.name,
+    //                 email: user.email,
+    //                 role: user.role,
+    //             },
+    //         };
+    //     } catch (error) {
+    //         if (dto.email) {
+    //             await this.userModel.updateOne(
+    //                 { email: dto.email.toLowerCase().trim() },
+    //                 { $inc: { loginAttempts: 1 } }
+    //             );
+    //         }
+    //         if (error instanceof UnauthorizedException) {
+    //             throw error;
+    //         }
+    //         throw new UnauthorizedException('Login failed');
+    //     }
+    // }
+
     async websiteLogin(dto: WebsiteLoginDto) {
         try {
+            console.log('1. Starting login process for email:', dto.email);
+
+            // Validate input
             if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
+                console.log('2. Invalid input types');
                 throw new UnauthorizedException('Invalid credentials');
             }
 
-            const cleanEmail = dto.email.toLowerCase().trim();
+            const email = dto.email.toLowerCase().trim();
+            console.log('3. Normalized email:', email);
 
+            // Find user with password field
+            console.log('4. Looking for user in database...');
             const user = await this.userModel
-                .findOne({ email: cleanEmail })
+                .findOne({ email })
                 .select('+password');
 
+            console.log('5. User found:', user ? 'Yes' : 'No');
+
             if (!user) {
+                console.log('6. User not found');
                 throw new UnauthorizedException('Invalid credentials');
             }
 
+            // Verify password
+            console.log('7. Comparing passwords...');
             const isMatch = await bcrypt.compare(dto.password, user.password);
+            console.log('8. Password match:', isMatch);
+
             if (!isMatch) {
+                console.log('9. Password mismatch');
                 throw new UnauthorizedException('Invalid credentials');
             }
 
+            // Check if account is blocked/deleted
+            console.log('10. Checking account status - Blocked:', user.isBlocked, 'Deleted:', user.isDeleted);
             if (user.isBlocked || user.isDeleted) {
+                console.log('11. Account blocked or deleted');
                 throw new UnauthorizedException('Account is not available');
             }
 
+            console.log('12. Generating tokens...');
+            // Create JWT payload
             const payload = {
                 sub: user._id.toString(),
                 email: user.email,
@@ -58,6 +141,7 @@ export class AuthService {
                 jti: crypto.randomBytes(16).toString('hex')
             };
 
+            // Generate tokens
             const accessToken = this.jwtService.sign(payload, {
                 expiresIn: '15m',
                 secret: process.env.JWT_ACCESS_SECRET || 'access-secret'
@@ -68,13 +152,20 @@ export class AuthService {
                 secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret'
             });
 
-            const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+            console.log('13. Tokens generated successfully');
 
+            // Hash and store refresh token
+            console.log('14. Hashing refresh token...');
+            const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
             user.refreshToken = hashedRefreshToken;
             user.lastLoginAt = new Date();
             user.loginAttempts = 0;
-            await user.save();
 
+            console.log('15. Saving user...');
+            await user.save();
+            console.log('16. User saved successfully');
+
+            // Return success response
             return {
                 message: 'User logged in successfully',
                 accessToken,
@@ -88,22 +179,31 @@ export class AuthService {
             };
 
         } catch (error) {
+            // Print FULL error details
+            console.log('========== ERROR DETAILS ==========');
+            console.log('Error name:', error.name);
+            console.log('Error message:', error.message);
+            console.log('Error stack:', error.stack);
+            console.log('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            console.log('===================================');
+
+            // Update login attempts
             if (dto.email) {
-                await this.userModel.updateOne(
-                    { email: dto.email.toLowerCase().trim() },
-                    { $inc: { loginAttempts: 1 } }
-                );
+                try {
+                    await this.userModel.updateOne(
+                        { email: dto.email.toLowerCase().trim() },
+                        { $inc: { loginAttempts: 1 } }
+                    );
+                    console.log('Login attempts updated for:', dto.email);
+                } catch (updateError) {
+                    console.log('Failed to update login attempts:', updateError.message);
+                }
             }
 
-            if (error instanceof UnauthorizedException) {
-                throw error;
-            }
-
-            console.error('Login error:', error.message);
-            throw new UnauthorizedException('Login failed');
+            // Re-throw the error
+            throw error;
         }
     }
-
     // ================= Login Mobile =================
     async mobileLogin(dto: MobileLoginDto) {
         const user = await this.userModel
