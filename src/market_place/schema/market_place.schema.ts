@@ -38,9 +38,19 @@ export class MarketPlace {
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: false,
+    required: true,
   })
-  category?: mongoose.Types.ObjectId;
+  categoryId: mongoose.Types.ObjectId;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Template', required: true })
+  templateId: mongoose.Types.ObjectId;
+
+
+  @Prop({
+    min: 0,
+    default: 0
+  })
+  stockCount: number;
 
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
@@ -58,5 +68,3 @@ export class MarketPlace {
 
 export const MarketPlaceSchema = SchemaFactory.createForClass(MarketPlace);
 MarketPlaceSchema.index({ name: 'text', description: 'text' });
-
-
