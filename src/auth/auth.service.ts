@@ -26,69 +26,6 @@ export class AuthService {
     ) { }
 
     // ================= Login Website =================
-    // async websiteLogin(dto: WebsiteLoginDto) {
-    //     try {
-    //         if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
-    //             throw new UnauthorizedException('Invalid credentials');
-    //         }
-    //         const email = dto.email.toLowerCase().trim();
-    //         const user = await this.userModel
-    //             .findOne({ email: email })
-    //             .select('+password');
-    //         if (!user) {
-    //             throw new UnauthorizedException('Invalid credentials');
-    //         }
-    //         const isMatch = await bcrypt.compare(dto.password, user.password);
-    //         if (!isMatch) {
-    //             throw new UnauthorizedException('Invalid credentials');
-    //         }
-    //         if (user.isBlocked || user.isDeleted) {
-    //             throw new UnauthorizedException('Account is not available');
-    //         }
-    //         const payload = {
-    //             sub: user._id.toString(),
-    //             email: user.email,
-    //             role: user.role,
-    //             jti: crypto.randomBytes(16).toString('hex')
-    //         };
-    //         const accessToken = this.jwtService.sign(payload, {
-    //             expiresIn: '15m',
-    //             secret: process.env.JWT_ACCESS_SECRET || 'access-secret'
-    //         });
-    //         const refreshToken = this.jwtService.sign(payload, {
-    //             expiresIn: '7d',
-    //             secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret'
-    //         });
-    //         const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    //         user.refreshToken = hashedRefreshToken;
-    //         user.lastLoginAt = new Date();
-    //         user.loginAttempts = 0;
-    //         await user.save();
-    //         return {
-    //             message: 'User logged in successfully',
-    //             accessToken,
-    //             refreshToken,
-    //             user: {
-    //                 id: user._id,
-    //                 name: user.name,
-    //                 email: user.email,
-    //                 role: user.role,
-    //             },
-    //         };
-    //     } catch (error) {
-    //         if (dto.email) {
-    //             await this.userModel.updateOne(
-    //                 { email: dto.email.toLowerCase().trim() },
-    //                 { $inc: { loginAttempts: 1 } }
-    //             );
-    //         }
-    //         if (error instanceof UnauthorizedException) {
-    //             throw error;
-    //         }
-    //         throw new UnauthorizedException('Login failed');
-    //     }
-    // }
-
     async websiteLogin(dto: WebsiteLoginDto) {
         try {
             console.log('1. Starting login process for email:', dto.email);
