@@ -54,3 +54,13 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# managed by sku
+.eslintcache
+.prettierrc
+coverage/
+dist/
+eslint.config.mjs
+report/
+tsconfig.json
+# end managed by sku

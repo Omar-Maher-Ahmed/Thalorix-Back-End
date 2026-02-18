@@ -7,9 +7,7 @@ import { TemplatesModule } from './templates/templates.module';
 import { ChatModule } from './chat/chat.module';
 import { CategoriesModule } from './categories/categories.module';
 import { AiModule } from './ai/ai.module';
-// import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-// import { User } from './users/entities/user.entity';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -19,8 +17,8 @@ import { ProductModule } from './product/product.module';
 @Module({
   imports: [
     ThrottlerModule.forRoot([{
-      ttl: 60000,      // دقيقة واحدة
-      limit: 100,     // 5 محاولات بس
+      ttl: 60000,
+      limit: 100,
     }]),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -34,21 +32,7 @@ import { ProductModule } from './product/product.module';
         retryDelay: 3000,
       }),
     }),
-    // TypeOrmModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   useFactory: (configService: ConfigService) => ({
-    //     type: 'postgres',
-    //     host: configService.get<string>('DB_HOST'),
-    //     port: configService.get<number>('DB_PORT'),
-    //     username: configService.get<string>('DB_USERNAME'),
-    //     password: configService.get<string>('DB_PASSWORD'),
-    //     database: configService.get<string>('DB_NAME'),
-    //     entities: [__dirname + '/**/*.entity{.ts,.js}'],
-    //     // entities: [User], // old way
-    //     synchronize: true,
-    //   }),
-    //   inject: [ConfigService],
-    // }),
+
     UsersModule,
     AuthModule,
     MarketPlaceModule,

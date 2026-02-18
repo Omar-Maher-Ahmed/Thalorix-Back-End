@@ -359,7 +359,6 @@ export class AuthService {
 
     // ================= Register Website =================
     async websiteRegister(dto: WebsiteSignUpDto) {
-        // فحص إضافي قبل الحفظ في قاعدة البيانات
         const dangerousPatterns = [
             /<[^>]*>/,
             /&lt;.*&gt;/,
@@ -415,7 +414,6 @@ export class AuthService {
 
     // ================= Register Mobile =================
     async mobileRegister(dto: MobileSignUpDto) {
-        // فحص إضافي قبل الحفظ في قاعدة البيانات
         const dangerousPatterns = [
             /<[^>]*>/,
             /&lt;.*&gt;/,

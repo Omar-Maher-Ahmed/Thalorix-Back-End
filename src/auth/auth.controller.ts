@@ -13,7 +13,6 @@ import {
   MobileLoginDto,
   WebsiteLoginDto
 } from '../auth/dto';
-import { SignupValidationPipe } from '../auth/pips/signup.validation.pipe';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
@@ -26,9 +25,7 @@ export class AuthController {
   @Post('web/register')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   async signup(@Body() websiteSignUp: WebsiteSignUpDto) {
-    // تنظيف إضافي يدوي
     if (websiteSignUp.name) {
-      // إزالة أي HTML entities
       websiteSignUp.name = websiteSignUp.name
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
@@ -36,7 +33,6 @@ export class AuthController {
         .replace(/&quot;/g, '"')
         .replace(/&#x?[0-9A-F]+;/gi, '');
 
-      // لو لسه فيه < أو > بعد كده
       if (websiteSignUp.name.includes('<') || websiteSignUp.name.includes('>')) {
         throw new BadRequestException('Name cannot contain HTML tags');
       }
@@ -48,7 +44,7 @@ export class AuthController {
   @Post('mob/register')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   mobileRegister(
-    @Body(new SignupValidationPipe()) mobileSignUp: MobileSignUpDto,
+    @Body() mobileSignUp: MobileSignUpDto,
   ) {
     return this.authService.mobileRegister(mobileSignUp);
   }

@@ -9,17 +9,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
   app.use(express.json({
     verify: (req: any, res, buf) => {
-      // افحص الـ body قبل المعالجة
+      // check body before processing
       const body = buf.toString();
-      // لو فيه HTML tags
+      // if HTML tags
       if (body.match(/<[^>]*>/g)) {
         throw new BadRequestException('HTML tags are not allowed');
       }
-      // لو فيه JavaScript events
+      // if JavaScript events
       if (body.match(/\bon\w+\s*=/gi)) {
         throw new BadRequestException('Event handlers are not allowed');
       }
-      // لو فيه javascript protocol
+      // if javascript protocol
       if (body.match(/javascript:/gi)) {
         throw new BadRequestException('JavaScript protocol is not allowed');
       }
@@ -40,7 +40,7 @@ async function bootstrap() {
       const ctx = host.switchToHttp();
       const response = ctx.getResponse();
 
-      // لو Internal Server Error
+      // if Internal Server Error
       if (exception.status === 500 || !exception.status) {
         return response.status(400).json({
           statusCode: 400,
@@ -49,7 +49,6 @@ async function bootstrap() {
         });
       }
 
-      // غيره كده زي ما هو
       response.status(exception.status).json(exception.response);
     }
   })());
@@ -59,7 +58,6 @@ async function bootstrap() {
     .setTitle('Thalorix API Documentation')
     .setDescription('The API description for my project')
     .setVersion('1.0')
-    //.addBearerAuth() // ضيف دي لو هتعمل نظام تسجيل دخول لاحقاً
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
