@@ -9,7 +9,7 @@ import {
   UpdateUserDto,
   ForgotPasswordDto,
 } from '../auth/dto';
-import { MailService } from '../mail/mail.service';
+import { MailService } from '../service/mail/mail.service';
 import { randomBytes } from 'crypto';
 
 @Injectable()
