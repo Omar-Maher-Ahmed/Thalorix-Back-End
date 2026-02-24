@@ -12,6 +12,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 // import { User } from './users/entities/user.entity';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
+import { MailModule } from './service/mail/mail.module';
 
 @Module({
   imports: [
@@ -27,21 +28,6 @@ import { AuthModule } from './auth/auth.module';
         retryDelay: 3000,
       }),
     }),
-    // TypeOrmModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   useFactory: (configService: ConfigService) => ({
-    //     type: 'postgres',
-    //     host: configService.get<string>('DB_HOST'),
-    //     port: configService.get<number>('DB_PORT'),
-    //     username: configService.get<string>('DB_USERNAME'),
-    //     password: configService.get<string>('DB_PASSWORD'),
-    //     database: configService.get<string>('DB_NAME'),
-    //     entities: [__dirname + '/**/*.entity{.ts,.js}'],
-    //     // entities: [User], // old way
-    //     synchronize: true,
-    //   }),
-    //   inject: [ConfigService],
-    // }),
     UsersModule,
     AuthModule,
     MarketPlaceModule,
@@ -49,7 +35,7 @@ import { AuthModule } from './auth/auth.module';
     ChatModule,
     CategoriesModule,
     AiModule,
-
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
