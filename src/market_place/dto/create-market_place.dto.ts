@@ -25,8 +25,15 @@ export class CreateMarketPlaceDto {
 
   @Type(() => Number)
   @IsNumber()
+  @IsNotEmpty()
   @Min(0)
   price: number;
+
+  @IsMongoId()
+  templateId: string;
+
+  @IsString()
+  currency: string;
 
   @IsOptional()
   @IsArray()

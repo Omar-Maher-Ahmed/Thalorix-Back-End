@@ -20,6 +20,8 @@ import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { Roles } from 'src/auth/enums/roles.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from 'src/auth/decorators/roles.decorator';
+import { AuthGuard } from '@nestjs/passport';
+import { AccessTokenGuard } from 'src/auth/guards/access-token.guard';
 
 @Controller('users')
 export class UsersController {
@@ -32,19 +34,19 @@ export class UsersController {
     return this.usersService.forgotPassword(forgotPasswordDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AuthGuard('jwt'), AccessTokenGuard)
   @Get('')
   findAll() {
     return this.usersService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AccessTokenGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AccessTokenGuard)
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -53,7 +55,7 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, AccessTokenGuard, RolesGuard)
   @Role(Roles.Admin)
   @Delete(':id')
   remove(@Param('id') id: string) {

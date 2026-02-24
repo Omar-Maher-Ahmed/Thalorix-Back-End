@@ -1,26 +1,28 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
-import sanitizeHtml from 'sanitize-html';
+import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { Match } from '../decorators/match.decorator'
 import { Transform } from 'class-transformer';
 import { BadRequestException } from '@nestjs/common';
 
 export class WebsiteLoginDto {
-    @IsEmail()
+    @IsEmail({}, { message: 'Invalid email format' })
     @IsNotEmpty({ message: 'Email is required' })
+    @Transform(({ value }) => value?.toLowerCase().trim())
     email: string;
 
     @IsString()
     @IsNotEmpty({ message: 'Password is required' })
+    @MinLength(8, { message: 'Password must be at least 8 characters' })
     password: string;
 }
 
 export class MobileLoginDto {
-    @IsString()
+    @IsEmail({}, { message: 'Invalid email format' })
     @IsNotEmpty({ message: 'Email is required' })
     email: string;
 
     @IsString()
     @IsNotEmpty({ message: 'Password is required' })
+    @MinLength(8, { message: 'Password must be at least 8 characters' })
     password: string;
 }
 
@@ -75,18 +77,26 @@ export class WebsiteSignUpDto {
 }
 
 export class MobileSignUpDto {
-
     @Transform(({ value }) => {
-        let cleaned = String(value)
-            .replace(/<[^>]*>/g, '')
+        let cleaned = String(value);
+
+        // ========== 1. clean name ==========
+        cleaned = cleaned
             .replace(/[^\u0600-\u06FFa-zA-Z\s]/g, '')
             .replace(/\s+/g, ' ')
             .trim();
 
-        if (!cleaned) {
-            throw new BadRequestException('Name is invalid after cleaning');
+        // ========== 2. check name length==========
+        if (!cleaned || cleaned.length < 3) {
+            throw new BadRequestException('الاسم يجب أن يحتوي على حروف فقط');
         }
-        console.log('2. Cleaned value:', cleaned);
+
+        // ========== 3. check name characters==========
+        const finalCheck = cleaned.match(/[^\u0600-\u06FFa-zA-Z\s]/g);
+        if (finalCheck && finalCheck.length > 0) {
+            throw new BadRequestException('الاسم يحتوي على رموز غير مسموح بها');
+        }
+
         return cleaned;
     })
     @IsString({ message: 'Name must be a string' })
@@ -123,7 +133,6 @@ export class MobileSignUpDto {
 
 
 }
-
 
 export class ForgotPasswordDto {
     @IsNotEmpty({ message: 'Email is required' })

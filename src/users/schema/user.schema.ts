@@ -10,7 +10,17 @@ export class User extends Document {
     // @Prop({ required: true, unique: true, trim: true })
     // user_id: string;
 
-    @Prop({ required: true, trim: true })
+    @Prop({
+        required: true,
+        trim: true,
+        validate: {
+            validator: function (v: string) {
+                // فقط حروف ومسافات
+                return /^[\u0600-\u06FFa-zA-Z\s]+$/.test(v);
+            },
+            message: 'الاسم يجب أن يحتوي على حروف فقط'
+        }
+    })
     name: string;
 
     @Prop({ required: true, unique: true, lowercase: true })
@@ -42,6 +52,24 @@ export class User extends Document {
 
     @Prop({ default: false })
     isVerified: boolean;
+
+    @Prop({ default: 0 })
+    loginAttempts: number;
+
+    @Prop()
+    lastLoginAt: Date;
+
+    @Prop({ default: false })
+    isBlocked: boolean;
+
+    @Prop({ default: false })
+    isDeleted: boolean;
+
+    @Prop({ select: false, default: null }) // مخفي وممكن يكون null
+    currentAccessToken?: string; // هنخزن الـ accessToken الحالي
+
+    @Prop({ default: [] })
+    tokenVersion: number; // لو عاوز تلغي كل التوكنز دفعة واحدة
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -7,15 +7,23 @@ import { TemplatesModule } from './templates/templates.module';
 import { ChatModule } from './chat/chat.module';
 import { CategoriesModule } from './categories/categories.module';
 import { AiModule } from './ai/ai.module';
-// import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-// import { User } from './users/entities/user.entity';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
+<<<<<<< HEAD
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ProductModule } from './product/product.module';
+=======
 import { MailModule } from './service/mail/mail.module';
+>>>>>>> origin/main
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100,
+    }]),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -28,6 +36,10 @@ import { MailModule } from './service/mail/mail.module';
         retryDelay: 3000,
       }),
     }),
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/main
     UsersModule,
     AuthModule,
     MarketPlaceModule,
@@ -35,9 +47,14 @@ import { MailModule } from './service/mail/mail.module';
     ChatModule,
     CategoriesModule,
     AiModule,
+<<<<<<< HEAD
+    ProductModule,
+
+=======
     MailModule,
+>>>>>>> origin/main
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule { }

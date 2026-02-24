@@ -31,15 +31,21 @@
     "@nestjs/platform-express": "^11.1.14",
     "@nestjs/platform-socket.io": "^11.1.13",
     "@nestjs/swagger": "^11.2.6",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.1.13",
     "@types/nodemailer": "^7.0.9",
     "@types/sanitize-html": "^2.16.0",
+    "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
+<<<<<<< HEAD
+    "helmet": "^8.1.0",
+=======
     "handlebars": "^4.7.8",
     "cloudinary": "^2.9.0",
+>>>>>>> origin/main
     "mongodb": "^6.21.0",
     "mongoose": "^9.2.0",
     "multer": "^2.0.2",
@@ -50,6 +56,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sanitize-html": "^2.17.0",
+    "sku": "^14.7.0",
+    "slugify": "^1.6.6",
     "stripe": "^20.3.1",
     "typeorm": "^0.3.28",
     "websockets": "^0.2.0"
@@ -57,7 +65,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
-    "@nestjs/cli": "^11.0.0",
+    "@nestjs/cli": "^1.8.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
     "@types/bcrypt": "^6.0.0",
@@ -67,9 +75,9 @@
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.2",
-    "eslint": "^9.18.0",
-    "eslint-config-prettier": "^10.0.1",
-    "eslint-plugin-prettier": "^5.2.2",
+    "eslint": "^4.1.1",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-plugin-prettier": "^2.7.0",
     "globals": "^16.0.0",
     "jest": "^30.0.0",
     "prettier": "^3.4.2",
@@ -80,7 +88,7 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.14.0"
   },
   "jest": {
     "moduleFileExtensions": [
