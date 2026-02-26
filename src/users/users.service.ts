@@ -61,7 +61,7 @@ export class UsersService {
     user.resetPasswordExpires = expires;
     await user.save();
 
-    await this.mailService.sendPasswordResetEmail(user.email, token);
+    // await this.mailService.sendPasswordResetEmail(user.email, token);
 
     return { message: 'Password reset email sent' };
   }

@@ -8,11 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from '../auth/token/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
-<<<<<<< HEAD
-import { MailModule } from '../services/mail/mail.module';
-=======
 import { MailModule } from '../service/mail/mail.module';
->>>>>>> origin/main
 
 @Module({
   imports: [
