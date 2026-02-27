@@ -12,7 +12,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-import { MailModule } from './service/mail/mail.module';
+import { MailModule } from './services/mail/mail.module';
 
 @Module({
   imports: [

@@ -14,7 +14,6 @@ import { CloudinaryService } from './cloudinary.service';
 export class CloudinaryController {
   constructor(private readonly cloudinaryService: CloudinaryService) {}
 
-  // ✅ رفع ملف
   @Post('upload/:slug')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
@@ -24,7 +23,6 @@ export class CloudinaryController {
     return this.cloudinaryService.uploadFile(file, slug);
   }
 
-  // ✅ حذف ملف
   @Delete(':publicId')
   async deleteFile(@Param('publicId') publicId: string) {
     return this.cloudinaryService.deleteFile(publicId);

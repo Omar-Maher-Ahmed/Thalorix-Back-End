@@ -8,15 +8,12 @@ export class Folder {
 
   @Prop({ required: true })
   name: string; 
-  // اسم يظهر في dashboard بس
 
   @Prop({ required: true, unique: true })
   slug: string; 
-  // USERS / PRODUCTS / CHAT
 
   @Prop({ required: true })
   path: string; 
-  // thalorix/users
 
   @Prop({ type: [String], default: [] })
   allowedFormats: string[];
