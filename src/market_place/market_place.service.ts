@@ -56,7 +56,7 @@ export class MarketPlaceService {
 
     // 📂 Category filtering
     if (category) {
-      filter.category = new Types.ObjectId(category);
+      filter.categoryId = new Types.ObjectId(category);
     }
 
     // 🔎 Text search
@@ -70,7 +70,7 @@ export class MarketPlaceService {
       this.marketPlaceModel
         .find(filter)
         .populate('owner', 'name email')
-        .populate('category', 'name')
+        .populate('categoryId', 'name')
         .skip(skip)
         .limit(Number(limit))
         .sort({ createdAt: -1 }),
@@ -90,7 +90,7 @@ export class MarketPlaceService {
     const item = await this.marketPlaceModel
       .findOne({ _id: id, isActive: true })
       .populate('owner', 'name email')
-      .populate('category', 'name');
+      .populate('categoryId', 'name');
 
     if (!item) {
       throw new NotFoundException('Market item not found');
