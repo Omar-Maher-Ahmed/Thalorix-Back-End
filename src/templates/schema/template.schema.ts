@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 export type TemplateDocument = HydratedDocument<Template>;
 
@@ -8,11 +8,17 @@ export class Template {
   @Prop({ required: true })
   title: string;
 
+  @Prop()
+  description: string;
+
   @Prop({ required: true })
   price: number;
 
-  @Prop({ required: true })
-  seller: string; // أو ObjectId لو عامل ref
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  seller: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
+  category: Types.ObjectId;
 
   @Prop({ default: true })
   isActive: boolean;
