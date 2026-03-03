@@ -16,4 +16,4 @@ import { TemplateController } from './templates.controller';
   providers: [TemplateService],
   exports: [TemplateService],
 })
-export class TemplateModule {}
+export class TemplatesModule {}
