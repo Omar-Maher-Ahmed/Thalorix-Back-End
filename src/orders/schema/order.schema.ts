@@ -4,12 +4,25 @@ import mongoose, { HydratedDocument } from 'mongoose';
 
 export type OrderDocument = HydratedDocument<Order>;
 
+// export enum OrderStatus {
+//   PENDING = 'pending',
+//   PAID = 'paid',
+//   CANCELLED = 'cancelled',
+//   COMPLETED = 'completed',
+// }
 export enum OrderStatus {
-  PENDING = 'pending',
-  PAID = 'paid',
-  CANCELLED = 'cancelled',
-  COMPLETED = 'completed',
+  PENDING = 'pending',        // 
+  PROCESSING = 'processing',  // 
+  COMPLETED = 'completed',    // 
+  CANCELLED = 'cancelled',    // 
 }
+
+// export enum PaymentStatus {
+//   UNPAID = 'unpaid',
+//   PAID = 'paid',
+//   FAILED = 'failed',
+//   REFUNDED = 'refunded',
+// }
 
 export enum PaymentStatus {
   UNPAID = 'unpaid',

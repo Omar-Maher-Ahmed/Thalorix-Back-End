@@ -127,7 +127,7 @@ async markAsPaid(orderId: string) {
   }
 
   order.paymentStatus = PaymentStatus.PAID;
-  order.orderStatus = OrderStatus.PAID;
+  order.orderStatus = OrderStatus.PROCESSING;
 
   await order.save();
 
