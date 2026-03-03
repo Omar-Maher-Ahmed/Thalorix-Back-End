@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   NotFoundException,
@@ -37,7 +36,6 @@ export class OrdersService {
     const { templateId } = createOrderDto;
     const quantity = createOrderDto.quantity || 1;
 
-    // 1️⃣ Get Template
     const template = await this.templateModel.findById(templateId);
 
     if (!template) {
@@ -48,11 +46,12 @@ export class OrdersService {
       throw new BadRequestException('Template is not active');
     }
 
-    // منع إن الـ seller يشتري من نفسه
+    // ❌ منع شراء المنتج من نفسك
     if (template.seller.toString() === userId) {
       throw new BadRequestException('You cannot purchase your own template');
     }
 
+    // ❌ منع duplicate unpaid order
     const existingOrder = await this.orderModel.findOne({
       buyer: userId,
       template: templateId,
@@ -65,11 +64,9 @@ export class OrdersService {
       );
     }
 
-    // 2️⃣ Snapshot price
     const price = template.price;
     const totalAmount = price * quantity;
 
-    // 3️⃣ Create Order
     const order = await this.orderModel.create({
       buyer: userId,
       seller: template.seller,
@@ -92,45 +89,110 @@ export class OrdersService {
       .sort({ createdAt: -1 });
   }
 
-  // 🔍 Get Single Order
-async findOne(orderId: string, userId: string) {
-  const order = await this.orderModel
-    .findById(orderId)
-    .populate('template')
-    .populate('buyer', '-password')
-    .populate('seller', '-password');
+  // 🔍 Get Single Order (Ownership Protected)
+  async findOne(orderId: string, userId: string) {
+    const order = await this.orderModel
+      .findById(orderId)
+      .populate('template')
+      .populate('buyer', '-password')
+      .populate('seller', '-password');
 
-  if (!order) {
-    throw new NotFoundException('Order not found');
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (
+      order.buyer._id.toString() !== userId &&
+      order.seller._id.toString() !== userId
+    ) {
+      throw new ForbiddenException('You are not allowed to view this order');
+    }
+
+    return order;
   }
 
-  if (
-    order.buyer._id.toString() !== userId &&
-    order.seller._id.toString() !== userId
-  ) {
-    throw new ForbiddenException('You are not allowed to view this order');
+  // 💳 Mark As Paid (بعد نجاح الدفع)
+  async markAsPaid(orderId: string) {
+    const order = await this.orderModel.findById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // 🔒 منع القفز في الحالات
+    if (order.orderStatus !== OrderStatus.PENDING) {
+      throw new BadRequestException('Invalid state transition');
+    }
+
+    if (order.paymentStatus !== PaymentStatus.UNPAID) {
+      throw new BadRequestException('Order already processed');
+    }
+
+    order.paymentStatus = PaymentStatus.PAID;
+    order.orderStatus = OrderStatus.PROCESSING;
+
+    await order.save();
+
+    return order;
   }
 
-  return order;
-}
+  // 📦 Complete Order (Seller confirms delivery)
+  async completeOrder(orderId: string, sellerId: string) {
+    const order = await this.orderModel.findById(orderId);
 
-  // 💳 Mark As Paid (جاهزة للـ Payment Integration)
-async markAsPaid(orderId: string) {
-  const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
 
-  if (!order) {
-    throw new NotFoundException('Order not found');
+    // 👮‍♂️ فقط البائع
+    if (order.seller.toString() !== sellerId) {
+      throw new ForbiddenException('Only seller can complete this order');
+    }
+
+    // 🔒 منع القفز
+    if (
+      order.orderStatus !== OrderStatus.PROCESSING ||
+      order.paymentStatus !== PaymentStatus.PAID
+    ) {
+      throw new BadRequestException('Order is not ready to be completed');
+    }
+
+    order.orderStatus = OrderStatus.COMPLETED;
+
+    await order.save();
+
+    return order;
   }
 
-  if (order.paymentStatus === PaymentStatus.PAID) {
-    throw new BadRequestException('Order already paid');
-  }
+  // 💸 Refund Order
+  async refundOrder(orderId: string, sellerId: string) {
+    const order = await this.orderModel.findById(orderId);
 
-  order.paymentStatus = PaymentStatus.PAID;
-  order.orderStatus = OrderStatus.PROCESSING;
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
 
-  await order.save();
+    // 👮‍♂️ فقط البائع (أو admin مستقبلاً)
+    if (order.seller.toString() !== sellerId) {
+      throw new ForbiddenException('Only seller can refund this order');
+    }
 
-  return order;
+    // 🔒 منع القفز
+    if (order.paymentStatus !== PaymentStatus.PAID) {
+      throw new BadRequestException('Order is not paid');
+    }
+
+    if (order.orderStatus === OrderStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Completed orders require special refund handling',
+      );
+    }
+
+    order.paymentStatus = PaymentStatus.REFUNDED;
+    order.orderStatus = OrderStatus.CANCELLED;
+
+    await order.save();
+
+    return order;
   }
 }
