@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -47,6 +48,23 @@ export class OrdersService {
       throw new BadRequestException('Template is not active');
     }
 
+    // منع إن الـ seller يشتري من نفسه
+    if (template.seller.toString() === userId) {
+      throw new BadRequestException('You cannot purchase your own template');
+    }
+
+    const existingOrder = await this.orderModel.findOne({
+      buyer: userId,
+      template: templateId,
+      paymentStatus: PaymentStatus.UNPAID,
+    });
+
+    if (existingOrder) {
+      throw new BadRequestException(
+        'You already have a pending order for this template',
+      );
+    }
+
     // 2️⃣ Snapshot price
     const price = template.price;
     const totalAmount = price * quantity;
@@ -75,33 +93,44 @@ export class OrdersService {
   }
 
   // 🔍 Get Single Order
-  async findOne(orderId: string) {
-    const order = await this.orderModel
-      .findById(orderId)
-      .populate('template')
-      .populate('buyer', '-password')
-      .populate('seller', '-password');
+async findOne(orderId: string, userId: string) {
+  const order = await this.orderModel
+    .findById(orderId)
+    .populate('template')
+    .populate('buyer', '-password')
+    .populate('seller', '-password');
 
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    return order;
+  if (!order) {
+    throw new NotFoundException('Order not found');
   }
 
+  if (
+    order.buyer._id.toString() !== userId &&
+    order.seller._id.toString() !== userId
+  ) {
+    throw new ForbiddenException('You are not allowed to view this order');
+  }
+
+  return order;
+}
+
   // 💳 Mark As Paid (جاهزة للـ Payment Integration)
-  async markAsPaid(orderId: string) {
-    const order = await this.orderModel.findById(orderId);
+async markAsPaid(orderId: string) {
+  const order = await this.orderModel.findById(orderId);
 
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
+  if (!order) {
+    throw new NotFoundException('Order not found');
+  }
 
-    order.orderStatus = OrderStatus.PAID;
-    order.paymentStatus = PaymentStatus.PAID;
+  if (order.paymentStatus === PaymentStatus.PAID) {
+    throw new BadRequestException('Order already paid');
+  }
 
-    await order.save();
+  order.paymentStatus = PaymentStatus.PAID;
+  order.orderStatus = OrderStatus.PAID;
 
-    return order;
+  await order.save();
+
+  return order;
   }
 }
