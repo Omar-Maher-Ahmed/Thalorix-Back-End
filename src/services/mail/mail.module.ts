@@ -1,16 +1,3 @@
-// import { Module } from '@nestjs/common';
-// import { MailService } from './mail.service';
-
-// @Module({
-//     providers: [MailService],
-//     exports: [MailService],
-// })
-// export class MailModule { }
-
-
-// Your Service → MailService → MailerModule → Nodemailer → Gmail SMTP → Inbox
-// pattern {Shared Infrastructure Module}
-
 import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { MailService } from './mail.service';
