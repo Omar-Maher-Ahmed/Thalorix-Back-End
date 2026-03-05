@@ -4,6 +4,7 @@ import {
   IsPhoneNumber,
   MinLength,
   IsOptional,
+  IsNumberString,
 } from 'class-validator';
 
 export class UpdateUserDto {
@@ -20,4 +21,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsPhoneNumber(undefined, { message: 'Invalid phone number format' })
   phone?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  tokenVersion?: number;
 }

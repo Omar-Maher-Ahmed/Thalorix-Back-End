@@ -68,7 +68,7 @@ export class User extends Document {
     @Prop({ select: false, default: null }) // مخفي وممكن يكون null
     currentAccessToken?: string; // هنخزن الـ accessToken الحالي
 
-    @Prop({ default: [] })
+    @Prop({ type: Number, default: 0 })
     tokenVersion: number; // لو عاوز تلغي كل التوكنز دفعة واحدة
 }
 
