@@ -28,5 +28,6 @@ import { MailModule } from '../services/mail/mail.module';
   ],
   controllers: [UsersController],
   providers: [UsersService, JwtStrategy],
+  exports: [MongooseModule]
 })
 export class UsersModule { }
