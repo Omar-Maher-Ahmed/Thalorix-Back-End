@@ -325,21 +325,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid refresh token');
         }
     }
-
-    // ================= Logout =================
-    // async logout(userId: string) {
-    //     try {
-    //         await this.userModel.updateOne(
-    //             { _id: userId },
-    //             { $unset: { refreshToken: 1 } }
-    //         );
-
-    //         return { message: 'Logged out successfully' };
-    //     } catch (error) {
-    //         console.error('Logout error:', error.message);
-    //         throw new UnauthorizedException('Logout failed');
-    //     }
-    // }
+    
     async logout(userId: string) {
         await this.userModel.updateOne(
             { _id: userId },

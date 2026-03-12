@@ -44,7 +44,7 @@ export class WebsiteSignUpDto {
     @IsString({ message: 'Name must be a string' })
     @IsNotEmpty({ message: 'Name is required' })
     @MinLength(3, { message: 'Name is too short' })
-    @MaxLength(20, { message: 'Name is too long' })
+    @MaxLength(255, { message: 'Name is too long' })
     @Matches(/^[\u0600-\u06FFa-zA-Z]+(?:\s[\u0600-\u06FFa-zA-Z]+)*$/, {
         message: 'Name must contain only letters (Arabic or English) without numbers or symbols'
     })
@@ -71,7 +71,7 @@ export class WebsiteSignUpDto {
     cPassword: string;// confirm password
 
     @IsNotEmpty({ message: 'Role is required' })
-    @IsEnum(['admin', 'user', 'manager'], { message: 'Invalid role selection' })
+    @IsEnum(['admin', 'user', 'seller'], { message: 'Invalid role selection' })
     role: string = 'user';
 
 }
@@ -102,7 +102,7 @@ export class MobileSignUpDto {
     @IsString({ message: 'Name must be a string' })
     @IsNotEmpty({ message: 'Name is required' })
     @MinLength(3, { message: 'Name is too short' })
-    @MaxLength(20, { message: 'Name is too long' })
+    @MaxLength(255, { message: 'Name is too long' })
     @Matches(/^[\u0600-\u06FFa-zA-Z]+(?:\s[\u0600-\u06FFa-zA-Z]+)*$/, {
         message: 'Name must contain only letters (Arabic or English) without numbers or symbols'
     })
@@ -128,7 +128,7 @@ export class MobileSignUpDto {
     cPassword: string;// confirm password
 
     @IsNotEmpty({ message: 'Role is required' })
-    @IsEnum(['admin', 'user', 'manager'], { message: 'Invalid role selection' })
+    @IsEnum(['admin', 'user', 'seller'], { message: 'Invalid role selection' })
     role: string;
 
 

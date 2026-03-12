@@ -15,10 +15,9 @@ export class User extends Document {
         trim: true,
         validate: {
             validator: function (v: string) {
-                // فقط حروف ومسافات
                 return /^[\u0600-\u06FFa-zA-Z\s]+$/.test(v);
             },
-            message: 'الاسم يجب أن يحتوي على حروف فقط'
+            message: 'Name must contain only letters and spaces'
         }
     })
     name: string;
