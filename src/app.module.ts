@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { MailModule } from './services/mail/mail.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { MailModule } from './services/mail/mail.module';
     CategoriesModule,
     AiModule,
     MailModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
