@@ -50,7 +50,19 @@ export class WebsiteSignUpDto {
     })
     name: string;
 
-    @IsEmail({}, { message: 'Invalid email format' })
+    // @IsEmail({}, { message: 'Invalid email format' })
+    // @IsNotEmpty({ message: 'Email is required' })
+    // @Transform(({ value }) => value?.toLowerCase().trim())
+    // email: string;
+
+    @IsEmail(
+    {
+        allow_display_name: false,
+        require_tld: true,
+        allow_ip_domain: false,
+    },
+    { message: 'Invalid email format' },
+    )
     @IsNotEmpty({ message: 'Email is required' })
     @Transform(({ value }) => value?.toLowerCase().trim())
     email: string;
@@ -108,8 +120,16 @@ export class MobileSignUpDto {
     })
     name: string;
 
+    @IsEmail(
+    {
+        allow_display_name: false,
+        require_tld: true,
+        allow_ip_domain: false,
+    },
+    { message: 'Invalid email format' },
+    )
     @IsNotEmpty({ message: 'Email is required' })
-    @IsEmail({}, { message: 'Invalid email format' })
+    @Transform(({ value }) => value?.toLowerCase().trim())
     email: string;
 
     @IsNotEmpty({ message: 'Phone number is required' })
