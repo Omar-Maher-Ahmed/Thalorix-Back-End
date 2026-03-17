@@ -11,6 +11,7 @@ export class AccessTokenGuard implements CanActivate {
         const request = context.switchToHttp().getRequest();
         const authHeader = request.headers.authorization;
 
+        console.log({authHeader})
         if (!authHeader) {
             throw new UnauthorizedException('No token provided');
         }

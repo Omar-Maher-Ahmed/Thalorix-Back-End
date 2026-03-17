@@ -14,7 +14,9 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/enums/roles.enum';
 import { Role } from 'src/auth/decorators/roles.decorator';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth('access-token')
 @Controller('orders')
 @UseGuards(AccessTokenGuard)
 export class OrdersController {

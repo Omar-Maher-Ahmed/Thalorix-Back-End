@@ -58,6 +58,15 @@ async function bootstrap() {
     .setTitle('Thalorix API Documentation')
     .setDescription('The API description for my project')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+      },
+      'access-token',   
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
