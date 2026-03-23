@@ -17,6 +17,7 @@ import { randomInt } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { Otp, OtpType } from './schema/otp.schema';
 import { OtpRateLimit } from './schema/otp-rate-limit.schema';
+import { OtpNotificationService } from './otp-notification.service';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
@@ -54,6 +55,7 @@ export class OtpService {
     @InjectModel(Otp.name) private readonly otpModel: Model<Otp>,
     @InjectModel(OtpRateLimit.name)
     private readonly rateLimitModel: Model<OtpRateLimit>,
+    private readonly notification: OtpNotificationService,
   ) {}
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -61,13 +63,19 @@ export class OtpService {
   // ────────────────────────────────────────────────────────────────────────────
 
   /**
-   * Generate, hash, and store an OTP.
-   * Enforces rate limiting and hybrid invalidation.
-   * Returns the plain-text code (to be sent via email/SMS).
+   * Generate, hash, and store an OTP — then deliver it via email or phone.
+   * Returns the plain-text code for testing convenience only.
+   *
+   * @param name  Optional display name used in the email greeting.
    */
   async createOtp(
     type: OtpType,
-    options: { userId?: string | Types.ObjectId; email?: string; phone?: string },
+    options: {
+      userId?: string | Types.ObjectId;
+      email?: string;
+      phone?: string;
+      name?: string; // shown in email greeting
+    },
   ): Promise<string> {
     const identifier = this.resolveIdentifier(options);
 
@@ -97,7 +105,14 @@ export class OtpService {
     // 6. Record this request in the rate limit tracker
     await this.recordRequest(identifier);
 
-    // Return plain code — caller must send it via email/SMS
+    // 7. Deliver OTP via the appropriate channel
+    if (options.email) {
+      await this.notification.sendByEmail(options.email, plainCode, type, options.name);
+    } else if (options.phone) {
+      await this.notification.sendByPhone(options.phone, plainCode, type);
+    }
+
+    // Return plain code — useful for testing; do NOT expose in production responses
     return plainCode;
   }
 

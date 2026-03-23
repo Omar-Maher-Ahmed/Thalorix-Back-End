@@ -23,11 +23,21 @@ export class MailService {
     });
   }
 
-  async sendOtp(email: string, otp: string) {
+  async sendOtp(
+    email: string,
+    otp: string,
+    context: { name?: string; action?: string } = {},
+  ) {
     await this.mailer.sendMail({
       to: email,
-      subject: 'Your OTP Code',
-      html: `<h2>Your OTP is: ${otp}</h2>`,
+      subject: 'Your verification code',
+      template: 'otp',
+      context: {
+        name: context.name ?? 'there',
+        action: context.action ?? 'verification',
+        otp,
+        year: new Date().getFullYear(),
+      },
     });
   }
 }
