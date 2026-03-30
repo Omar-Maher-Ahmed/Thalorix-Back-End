@@ -11,10 +11,7 @@ import {
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
-import {
-  ForgotPasswordDto,
-  UpdateUserDto,
-} from '../auth/dto';
+import { UpdateUserDto } from '../auth/dto';
 
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { Roles } from 'src/auth/enums/roles.enum';
@@ -29,10 +26,6 @@ export class UsersController {
 
 
   // ================= Protected Routes =================
-  @Post('forgot-password')
-  forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    return this.usersService.forgotPassword(forgotPasswordDto);
-  }
 
   @UseGuards(JwtAuthGuard, AuthGuard('jwt'), AccessTokenGuard)
   @Get('')

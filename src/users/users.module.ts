@@ -8,13 +8,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from '../auth/token/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
-import { MailModule } from '../services/mail/mail.module';
+
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    MailModule,
+
 
     JwtModule.registerAsync({
       inject: [ConfigService],

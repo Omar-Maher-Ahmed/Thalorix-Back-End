@@ -9,11 +9,13 @@ import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AccessTokenGuard } from './guards/access-token.guard';
+import { MailModule } from '../services/mail/mail.module';
 
 @Module({
     imports: [
         PassportModule.register({ defaultStrategy: 'jwt' }),
         MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+        MailModule,
 
         JwtModule.registerAsync({
             inject: [ConfigService],

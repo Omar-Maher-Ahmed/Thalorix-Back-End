@@ -2,7 +2,8 @@ import {
     Injectable,
     UnauthorizedException,
     ConflictException,
-    BadRequestException
+    BadRequestException,
+    NotFoundException
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -12,7 +13,9 @@ import {
     MobileSignUpDto,
     WebsiteLoginDto,
     MobileLoginDto,
+    ForgotPasswordDto,
 } from '../auth/dto';
+import { MailService } from '../services/mail/mail.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
@@ -23,6 +26,7 @@ export class AuthService {
         @InjectModel(User.name)
         private readonly userModel: Model<User>,
         private readonly jwtService: JwtService,
+        private readonly mailService: MailService,
     ) { }
 
     // ================= Login Website =================
@@ -453,5 +457,24 @@ export class AuthService {
         return { message: 'User registered successfully' };
     }
 
+    // ================= Forgot Password =================
+    async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+        const user = await this.userModel.findOne({ email: forgotPasswordDto.email });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires = new Date();
+        expires.setHours(expires.getHours() + 1); // 1 hour expiration
+
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = expires;
+        await user.save();
+
+        // await this.mailService.sendPasswordResetEmail(user.email, token);
+
+        return { message: 'Password reset email sent' };
+    }
 
 }

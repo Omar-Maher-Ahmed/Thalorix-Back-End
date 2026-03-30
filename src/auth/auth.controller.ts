@@ -11,7 +11,8 @@ import {
   WebsiteSignUpDto,
   MobileSignUpDto,
   MobileLoginDto,
-  WebsiteLoginDto
+  WebsiteLoginDto,
+  ForgotPasswordDto
 } from '../auth/dto';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -72,5 +73,11 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   async logout(@Request() req) {
     return this.authService.logout(req.user.sub);
+  }
+
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
   }
 }
