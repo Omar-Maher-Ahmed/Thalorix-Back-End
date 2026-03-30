@@ -154,31 +154,16 @@ export class MobileSignUpDto {
 
 }
 
+import { ValidateIf } from 'class-validator';
+
 export class ForgotPasswordDto {
-    @IsNotEmpty({ message: 'Email is required' })
+    @ValidateIf((o) => !o.phone)
     @IsEmail({}, { message: 'Invalid email format' })
-    email: string;
-}
+    @IsNotEmpty({ message: 'Email is required when phone is not provided' })
+    email?: string;
 
-export class ResetPasswordDto {
+    @ValidateIf((o) => !o.email)
     @IsString()
-    @IsNotEmpty({ message: "Token is required" })
-    token: string;
-
-    @IsNotEmpty({ message: 'Password is required' })
-    @IsString()
-    @MinLength(8, { message: 'Password must be at least 8 characters long' })
-    password: string;
-
-    @IsNotEmpty({ message: 'Confirm Password is required' })
-    @IsString()
-    @MinLength(8, { message: 'Password must be at least 8 characters long' })
-    @Match("password", { message: "Confirm password must match password" })
-    cPassword: string; // confirm password
-}
-
-export class VerifyEmailDto {
-    @IsString()
-    @IsNotEmpty({ message: "Token is required" })
-    token: string;
+    @IsNotEmpty({ message: 'Phone is required when email is not provided' })
+    phone?: string;
 }

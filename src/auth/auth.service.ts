@@ -14,8 +14,12 @@ import {
     WebsiteLoginDto,
     MobileLoginDto,
     ForgotPasswordDto,
+    VerifyOtpDto,
+    ResetPasswordDto,
 } from '../auth/dto';
 import { MailService } from '../services/mail/mail.service';
+import { OtpService } from '../otp/otp.service';
+import { OtpType } from '../otp/schema/otp.schema';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
@@ -27,6 +31,7 @@ export class AuthService {
         private readonly userModel: Model<User>,
         private readonly jwtService: JwtService,
         private readonly mailService: MailService,
+        private readonly otpService: OtpService,
     ) { }
 
     // ================= Login Website =================
@@ -64,6 +69,13 @@ export class AuthService {
             if (!isMatch) {
                 console.log('9. Password mismatch');
                 throw new UnauthorizedException('Invalid credentials');
+            }
+
+            // Check if account is verified
+            console.log('9.5 Checking verification status...');
+            if (!user.isVerified) {
+                console.log('9.6 Account not verified');
+                throw new UnauthorizedException('Account not verified. Please verify your OTP to login.');
             }
 
             // Check if account is blocked/deleted
@@ -185,6 +197,13 @@ export class AuthService {
             if (!isMatch) {
                 console.log('9. Password mismatch');
                 throw new UnauthorizedException('Invalid credentials');
+            }
+
+            // Check if account is verified
+            console.log('9.5 Checking verification status...');
+            if (!user.isVerified) {
+                console.log('9.6 Account not verified');
+                throw new UnauthorizedException('Account not verified. Please verify your OTP to login.');
             }
 
             // Check if account is blocked/deleted
@@ -385,17 +404,18 @@ export class AuthService {
             }
         }
 
-        const verificationToken = crypto.randomBytes(32).toString('hex');
-        const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
         const newUser = await this.userModel.create({
             name: dto.name,
             email: dto.email,
             phone: dto.phone,
             password: await this.hashPassword(dto.password),
             role: 'user',
-            verificationToken,
-            verificationTokenExpires,
+        });
+
+        await this.otpService.createOtp(OtpType.EMAIL_VERIFICATION, {
+            userId: newUser._id,
+            email: dto.email,
+            name: dto.name,
         });
 
 
@@ -440,17 +460,19 @@ export class AuthService {
             }
         }
 
-        const verificationToken = crypto.randomBytes(32).toString('hex');
-        const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
         const newUser = await this.userModel.create({
             name: dto.name,
             email: dto.email,
             phone: dto.phone,
             password: await this.hashPassword(dto.password),
             role: 'user',
-            verificationToken,
-            verificationTokenExpires,
+        });
+
+        // Use PHONE_VERIFICATION if SMS is primarily used, but we use OtpType
+        await this.otpService.createOtp(OtpType.PHONE_VERIFICATION, {
+            userId: newUser._id,
+            phone: dto.phone,
+            name: dto.name,
         });
 
 
@@ -459,22 +481,82 @@ export class AuthService {
 
     // ================= Forgot Password =================
     async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
-        const user = await this.userModel.findOne({ email: forgotPasswordDto.email });
+        const user = await this.userModel.findOne({
+            $or: [{ email: forgotPasswordDto.email }, { phone: forgotPasswordDto.phone }]
+        });
+        
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
-        const token = crypto.randomBytes(32).toString('hex');
-        const expires = new Date();
-        expires.setHours(expires.getHours() + 1); // 1 hour expiration
+        // [OTP Integration]: بدلاً من إنشاء توكن وحفظه في حساب المستخدم وتعديل قاعدة البيانات يدوياً
+        // بقا النظام كله رايح لـ OtpService وهي بتدير إنشاء الكود وتشفيره وإرساله
+        await this.otpService.createOtp(OtpType.PASSWORD_RESET, {
+            userId: user._id,
+            email: forgotPasswordDto.email,
+            phone: forgotPasswordDto.phone,
+            name: user.name,
+        });
 
-        user.resetPasswordToken = token;
-        user.resetPasswordExpires = expires;
+        return { message: 'Password reset OTP sent' };
+    }
+
+    // ================= Verify OTP =================
+    // [OTP Integration]: دي دالة جديدة المخصصة لاستقبال طلب التفعيل وتمرير الكود للـ OtpService يتأكد منه
+    async verifyOtp(dto: VerifyOtpDto) {
+        const user = await this.userModel.findOne({
+            $or: [{ email: dto.email }, { phone: dto.phone }]
+        });
+        
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // [OTP Integration]: بنحدد نوع الكود اللي هيدور فيه على أساس هل المستخدم باعت إيميل ولا رقم تليفون
+        const type = dto.email ? OtpType.EMAIL_VERIFICATION : OtpType.PHONE_VERIFICATION;
+        
+        // [OTP Integration]: هنا الـ validateOtp بيقوم بكل الشغل ورا الكواليس (قفل الكود وتجنب اختراقه وتأكيده)
+        await this.otpService.validateOtp(dto.code, type, {
+            userId: user._id,
+            email: dto.email,
+            phone: dto.phone,
+        });
+
+        // [OTP Integration]: الدالة لو ماعملتش throw لمشكلة، ده معناه التوثيق ناجح وبنعدل حالة المستخدم
+        user.isVerified = true;
         await user.save();
 
-        // await this.mailService.sendPasswordResetEmail(user.email, token);
+        return { message: 'Account verified successfully' };
+    }
 
-        return { message: 'Password reset email sent' };
+    // ================= Reset Password =================
+    // [OTP Integration]: دي الدالة اللي بتخلص عملية الاستعادة. بتستقبل التوكن مع الباسورد الجديد وتأكده
+    async resetPassword(dto: ResetPasswordDto) {
+        const user = await this.userModel.findOne({
+            $or: [{ email: dto.email }, { phone: dto.phone }]
+        });
+        
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // [OTP Integration]: التأكد إن الكود اللي اتبعت مخصص ومكتوب صح ومسجل بانه يطابق المستخدم ده
+        await this.otpService.validateOtp(dto.code, OtpType.PASSWORD_RESET, {
+            userId: user._id,
+            email: dto.email,
+            phone: dto.phone,
+        });
+
+        // [OTP Integration]: تشفير وتعديل الباسورد الجديد وتحديثه
+        user.password = await this.hashPassword(dto.newPassword);
+        
+        // Optional: cancel all other active tokens
+        // [OTP Integration]: كحركة أمان إضافية، بنحطلها أمر بأنها تمسح كل أكواد الاسترداد اللي لسه مفتوحة للحساب ده
+        await this.otpService.expireAllOtps(OtpType.PASSWORD_RESET, { userId: user._id });
+
+        await user.save();
+
+        return { message: 'Password reset successfully' };
     }
 
 }

@@ -12,7 +12,9 @@ import {
   MobileSignUpDto,
   MobileLoginDto,
   WebsiteLoginDto,
-  ForgotPasswordDto
+  ForgotPasswordDto,
+  VerifyOtpDto,
+  ResetPasswordDto
 } from '../auth/dto';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -75,9 +77,24 @@ export class AuthController {
     return this.authService.logout(req.user.sub);
   }
 
+  // [OTP Integration]: راوت خاص لمرحلة الاسترجاع (الخطوة الأولى)، بيستقبل الإيميل أو التليفون ويبعت له الكود
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  // [OTP Integration]: راوت جديد بيستقبل طلب التفعيل للكود اللي جال للمستخدم سواء وقت التسجيل
+  @Post('verify-otp')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    return this.authService.verifyOtp(verifyOtpDto);
+  }
+
+  // [OTP Integration]: راوت جديد بياخد الكود والباسورد الجديد وبيتم عليهم عملية التغيير مع فحص الكود
+  @Post('reset-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

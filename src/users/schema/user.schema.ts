@@ -37,17 +37,7 @@ export class User extends Document {
     @Prop({ required: false })
     refreshToken: string;
 
-    @Prop({ required: false })
-    resetPasswordToken: string;
 
-    @Prop({ required: false })
-    resetPasswordExpires: Date;
-
-    @Prop({ required: false })
-    verificationToken: string;
-
-    @Prop({ required: false })
-    verificationTokenExpires: Date;
 
     @Prop({ default: false })
     isVerified: boolean;
