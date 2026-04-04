@@ -349,6 +349,7 @@ export class AuthService {
         }
     }
     
+    // ================= Logout =================
     async logout(userId: string) {
         await this.userModel.updateOne(
             { _id: userId },
