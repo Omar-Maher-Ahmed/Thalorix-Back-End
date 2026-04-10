@@ -14,6 +14,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { OrdersModule } from './orders/orders.module';
 import { OtpModule } from './otp/otp.module';
+import { MailerModule } from './services/mailer/mailer.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { OtpModule } from './otp/otp.module';
     AiModule,
     OrdersModule,
     OtpModule,
+    MailerModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

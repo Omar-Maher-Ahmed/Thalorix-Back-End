@@ -1,10 +1,3 @@
-//generate OTP
-//store OTP (DB أو Redis)
-//validate OTP
-//expire OTP
-
-
-
 import {
   BadRequestException,
   Injectable,
@@ -97,6 +90,7 @@ export class OtpService {
       await this.otpModel.create({
         hashedCode,
         userId: options.userId ? new Types.ObjectId(options.userId.toString()) : undefined,
+        email: options.email,
         phone: options.phone,
         type,
         expiresAt: new Date(Date.now() + OTP_TTL_MS),
@@ -107,7 +101,9 @@ export class OtpService {
       await this.recordRequest(identifier);
 
       // 7. Deliver OTP via the appropriate channel
-      if (options.phone) {
+      if (options.email) {
+        await this.notification.sendByEmail(options.email, plainCode, type, options.name);
+      } else if (options.phone) {
         await this.notification.sendByPhone(options.phone, plainCode, type);
       }
 
