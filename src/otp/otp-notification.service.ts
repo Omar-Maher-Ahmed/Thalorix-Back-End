@@ -15,19 +15,6 @@ export class OtpNotificationService {
     private readonly smsService: SmsService,
   ) {}
 
-  /** Send OTP via email. */
-  // async sendByEmail(
-  //   email: string,
-  //   otp: string,
-  //   type: OtpType,
-  //   name?: string,
-  // ): Promise<void> {
-  //   await this.mailService.sendOtp(email, otp, {
-  //     name,
-  //     action: ACTION_LABELS[type],
-  //   });
-  // }
-
   /** Send OTP via SMS (dev: logs to console). */
   async sendByPhone(
     phone: string,

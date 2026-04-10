@@ -10,6 +10,8 @@ import {
   Injectable,
   HttpException,
   HttpStatus,
+  Logger,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -51,6 +53,8 @@ function msToHuman(ms: number): string {
 // ─── Service ──────────────────────────────────────────────────────────────────
 @Injectable()
 export class OtpService {
+  private readonly logger = new Logger(OtpService.name);
+
   constructor(
     @InjectModel(Otp.name) private readonly otpModel: Model<Otp>,
     @InjectModel(OtpRateLimit.name)
@@ -64,9 +68,6 @@ export class OtpService {
 
   /**
    * Generate, hash, and store an OTP — then deliver it via email or phone.
-   * Returns the plain-text code for testing convenience only.
-   *
-   * @param name  Optional display name used in the email greeting.
    */
   async createOtp(
     type: OtpType,
@@ -74,110 +75,123 @@ export class OtpService {
       userId?: string | Types.ObjectId;
       email?: string;
       phone?: string;
-      name?: string; // shown in email greeting
+      name?: string;
     },
   ): Promise<string> {
     const identifier = this.resolveIdentifier(options);
 
-    // 1. Rate limit gate
-    await this.checkRateLimit(identifier);
+    try {
+      // 1. Rate limit gate
+      await this.checkRateLimit(identifier);
 
-    // 2. Hybrid invalidation — if a valid OTP still exists, tell user to wait
-    await this.rejectIfActiveOtpExists(type, options);
+      // 2. Hybrid invalidation — if a valid OTP still exists, tell user to wait
+      await this.rejectIfActiveOtpExists(type, options);
 
-    // 3. Generate random 6-digit code (CSPRNG)
-    const plainCode = randomInt(100_000, 1_000_000).toString();
+      // 3. Generate random 6-digit code (CSPRNG)
+      const plainCode = randomInt(100_000, 1_000_000).toString();
 
-    // 4. Hash before storing
-    const hashedCode = await bcrypt.hash(plainCode, BCRYPT_ROUNDS);
+      // 4. Hash before storing (handled with care for hashing delays)
+      const hashedCode = await bcrypt.hash(plainCode, BCRYPT_ROUNDS);
 
-    // 5. Save OTP document
-    await this.otpModel.create({
-      hashedCode,
-      userId: options.userId ? new Types.ObjectId(options.userId.toString()) : undefined,
-      email: options.email,
-      phone: options.phone,
-      type,
-      expiresAt: new Date(Date.now() + OTP_TTL_MS),
-      isUsed: false,
-    });
+      // 5. Save OTP document
+      await this.otpModel.create({
+        hashedCode,
+        userId: options.userId ? new Types.ObjectId(options.userId.toString()) : undefined,
+        phone: options.phone,
+        type,
+        expiresAt: new Date(Date.now() + OTP_TTL_MS),
+        isUsed: false,
+      });
 
-    // 6. Record this request in the rate limit tracker
-    await this.recordRequest(identifier);
+      // 6. Record this request in the rate limit tracker
+      await this.recordRequest(identifier);
 
-    // 7. Deliver OTP via the appropriate channel
-    if (options.email) {
-      // await this.notification.sendByEmail(options.email, plainCode, type, options.name);
-    } else if (options.phone) {
-      await this.notification.sendByPhone(options.phone, plainCode, type);
+      // 7. Deliver OTP via the appropriate channel
+      if (options.phone) {
+        await this.notification.sendByPhone(options.phone, plainCode, type);
+      }
+
+      this.logger.log(`OTP created and sent successfully to ${identifier} for ${type}`);
+
+      // In production, you might not return this, but keeping for dev/testing as per current logic
+      return plainCode;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      this.logger.error(`Failed to create OTP for ${identifier}: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('Failed to process OTP request. Please try again later.');
     }
-
-    // Return plain code — useful for testing; do NOT expose in production responses
-    return plainCode;
   }
 
   /**
    * Validate an OTP atomically.
-   * Marks it as used in a single findOneAndUpdate call to prevent race conditions.
    */
   async validateOtp(
     inputCode: string,
     type: OtpType,
     options: { userId?: string | Types.ObjectId; email?: string; phone?: string },
   ): Promise<boolean> {
+    const identifier = this.resolveIdentifier(options);
     const filter = this.buildOtpFilter(type, options);
 
-    // Atomic: find a valid, unused, non-expired OTP and mark it used in one query
-    const otp = await this.otpModel.findOneAndUpdate(
-      { ...filter, isUsed: false, expiresAt: { $gt: new Date() } },
-      { $set: { isUsed: true } },
-      { new: false }, // return the document BEFORE update so we can read hashedCode
-    );
+    try {
+      // Atomic: find a valid, unused, non-expired OTP and mark it used in one query
+      const otp = await this.otpModel.findOneAndUpdate(
+        { ...filter, isUsed: false, expiresAt: { $gt: new Date() } },
+        { $set: { isUsed: true } },
+        { new: false },
+      );
 
-    if (!otp) {
-      throw new BadRequestException('Invalid or expired OTP');
+      if (!otp) {
+        this.logger.warn(`OTP validation failed: No active OTP found for ${identifier}`);
+        throw new BadRequestException('Invalid or expired OTP');
+      }
+
+      // Compare plain input against stored hash
+      const isMatch = await bcrypt.compare(inputCode, otp.hashedCode);
+      if (!isMatch) {
+        this.logger.warn(`OTP validation failed: Incorrect code for ${identifier}`);
+        // Un-mark as used so the real code can still be tried
+        await this.otpModel.findByIdAndUpdate(otp._id, { $set: { isUsed: false } });
+        throw new BadRequestException('Invalid or expired OTP');
+      }
+
+      this.logger.log(`OTP validated successfully for ${identifier}`);
+      return true;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      this.logger.error(`Error during OTP validation for ${identifier}: ${error.message}`);
+      throw new InternalServerErrorException('Validation service unavailable');
     }
-
-    // Compare plain input against stored hash
-    const isMatch = await bcrypt.compare(inputCode, otp.hashedCode);
-    if (!isMatch) {
-      // Un-mark as used so the real code can still be tried
-      await this.otpModel.findByIdAndUpdate(otp._id, { $set: { isUsed: false } });
-      throw new BadRequestException('Invalid or expired OTP');
-    }
-
-    return true;
   }
 
   /**
    * Manually expire all active OTPs for a user+type.
-   * Use when you want to cancel an outstanding OTP (e.g. user changed email).
    */
   async expireAllOtps(
     type: OtpType,
     options: { userId?: string | Types.ObjectId; email?: string; phone?: string },
   ): Promise<void> {
-    await this.markExistingOtpsUsed(type, options);
+    try {
+      await this.markExistingOtpsUsed(type, options);
+    } catch (error) {
+      this.logger.error(`Failed to expire OTPs: ${error.message}`);
+    }
   }
 
   // ────────────────────────────────────────────────────────────────────────────
   // RATE LIMITING
   // ────────────────────────────────────────────────────────────────────────────
 
-  /**
-   * Reads the rate limit record for this identifier.
-   * Throws 429 if the user is locked or still in a cooldown window.
-   */
   private async checkRateLimit(identifier: string): Promise<void> {
     const record = await this.rateLimitModel.findOne({ identifier });
-    if (!record) return; // first request ever — always allowed
+    if (!record) return;
 
     const now = new Date();
 
     // ── Permanent lock ──
     if (record.isPermanentlyLocked) {
-      // Auto-reset after 48 h
       if (record.resetAt && record.resetAt <= now) {
+        this.logger.log(`Hard lock expired for ${identifier}. Resetting rate limit.`);
         await this.rateLimitModel.findOneAndUpdate(
           { identifier },
           {
@@ -189,10 +203,11 @@ export class OtpService {
             },
           },
         );
-        return; // allowed after reset
+        return;
       }
 
       const msLeft = record.resetAt ? record.resetAt.getTime() - now.getTime() : 0;
+      this.logger.warn(`Rate limit triggered: ${identifier} is permanently locked for ${msToHuman(msLeft)}`);
       throw new HttpException(
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
@@ -205,6 +220,7 @@ export class OtpService {
     // ── Cooldown window ──
     if (record.lockedUntil && record.lockedUntil > now) {
       const msLeft = record.lockedUntil.getTime() - now.getTime();
+      this.logger.warn(`Rate limit triggered: ${identifier} is in cooldown for ${msToHuman(msLeft)}`);
       throw new HttpException(
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
@@ -215,10 +231,6 @@ export class OtpService {
     }
   }
 
-  /**
-   * Increments requestCount and sets the next lockedUntil based on cooldown ladder.
-   * If count reaches MAX_REQUESTS → permanently lock.
-   */
   private async recordRequest(identifier: string): Promise<void> {
     const record = await this.rateLimitModel.findOneAndUpdate(
       { identifier },
@@ -228,8 +240,8 @@ export class OtpService {
 
     const count = record.requestCount;
 
-    // Reached the max → permanent lock for 48 h
     if (count >= MAX_REQUESTS) {
+      this.logger.error(`DANGER: ${identifier} reached max requests. Applying 48h hard lock.`);
       await this.rateLimitModel.findOneAndUpdate(
         { identifier },
         {
@@ -243,9 +255,9 @@ export class OtpService {
       return;
     }
 
-    // Set the cooldown for the NEXT request
-    const nextCooldown = COOLDOWNS_MS[count]; // count is now after increment
+    const nextCooldown = COOLDOWNS_MS[count];
     if (nextCooldown > 0) {
+      this.logger.debug(`Setting next cooldown for ${identifier}: ${msToHuman(nextCooldown)}`);
       await this.rateLimitModel.findOneAndUpdate(
         { identifier },
         { $set: { lockedUntil: new Date(Date.now() + nextCooldown) } },
@@ -257,15 +269,11 @@ export class OtpService {
   // HYBRID INVALIDATION
   // ────────────────────────────────────────────────────────────────────────────
 
-  /**
-   * Option 3 — Hybrid:
-   *   - If a valid (non-expired, non-used) OTP exists → reject with a clear message.
-   *   - If the existing OTP is expired or used → mark it used and allow a new one.
-   */
   private async rejectIfActiveOtpExists(
     type: OtpType,
     options: { userId?: string | Types.ObjectId; email?: string; phone?: string },
   ): Promise<void> {
+    const identifier = this.resolveIdentifier(options);
     const filter = this.buildOtpFilter(type, options);
 
     const existing = await this.otpModel.findOne({
@@ -276,12 +284,12 @@ export class OtpService {
 
     if (existing) {
       const msLeft = existing.expiresAt.getTime() - Date.now();
+      this.logger.warn(`Rejected OTP request for ${identifier}: Active OTP still exists.`);
       throw new BadRequestException(
         `You already have an active OTP. Please use it or wait ${msToHuman(msLeft)} for it to expire.`,
       );
     }
 
-    // No valid OTP → expire stale ones and allow a new one
     await this.markExistingOtpsUsed(type, options);
   }
 
@@ -300,7 +308,6 @@ export class OtpService {
   // HELPERS
   // ────────────────────────────────────────────────────────────────────────────
 
-  /** Builds a consistent string key for the rate limit record. */
   private resolveIdentifier(options: {
     userId?: string | Types.ObjectId;
     email?: string;

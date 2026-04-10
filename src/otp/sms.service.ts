@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ISmsService } from './interfaces/otp.interfaces';
 
 /**
  * SMS service — development/testing strategy.
@@ -13,7 +14,7 @@ import { Injectable, Logger } from '@nestjs/common';
  *   4. No other file needs to change — the interface stays the same
  */
 @Injectable()
-export class SmsService {
+export class SmsService implements ISmsService {
   private readonly logger = new Logger(SmsService.name);
 
   async sendOtp(phone: string, otp: string, action?: string): Promise<void> {
