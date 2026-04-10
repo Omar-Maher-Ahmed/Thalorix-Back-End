@@ -6,7 +6,7 @@ import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
   const logger = new Logger('TestOTP');
-  logger.log('🚀 Starting OTP & Mailer Test...');
+  logger.log('🚀 Starting OTP & Mailer Test (Premium Design)...');
 
   // 1. Create a NestJS application context (no HTTP server)
   const app = await NestFactory.createApplicationContext(AppModule);
@@ -15,8 +15,8 @@ async function bootstrap() {
     // 2. Resolve the OtpService
     const otpService = app.get(OtpService);
 
-    const testEmail = 'test1@example.com';
-    const testName = 'Test User';
+    const testEmail = 'omaromarmaher2004@gmail.com';
+    const testName = 'omar maher';
 
     logger.log(`📧 Requesting OTP for: ${testEmail}`);
 
@@ -29,7 +29,7 @@ async function bootstrap() {
 
     logger.log('✅ Success!');
     logger.log(`🔢 Generated Code : ${code}`);
-    logger.log('ℹ️  Check the terminal logs above for the "📧 DEV EMAIL" box.');
+    logger.log('ℹ️  Check the terminal logs above to see the new Premium HTML structure.');
 
   } catch (error) {
     logger.error(`❌ Test failed: ${error.message}`);
