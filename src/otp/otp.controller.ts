@@ -18,16 +18,13 @@ export class OtpController {
     const code = await this.otpService.createOtp(dto.type, {
       email: dto.email,
       phone: dto.phone,
-      userId: undefined, // Add logic to resolve userId from auth if needed
+      userId: undefined,
       name: dto.name,
     });
 
-    // In production, do NOT return the code. Return success message.
-    // For now, we follow the service return but wrap it for the controller response.
     return {
       success: true,
       message: 'OTP has been sent to your ' + (dto.email ? 'email' : 'phone'),
-      // code: process.env.NODE_ENV === 'development' ? code : undefined,
     };
   }
 
