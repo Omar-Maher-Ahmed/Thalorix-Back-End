@@ -24,7 +24,7 @@ export class RequestOtpDto {
   name?: string;
 }
 
-export class VerifyOtpDto {
+export class OtpVerifyDto {
   @ApiProperty({ enum: OtpType, description: 'Type of OTP to verify' })
   @IsEnum(OtpType)
   @IsNotEmpty()

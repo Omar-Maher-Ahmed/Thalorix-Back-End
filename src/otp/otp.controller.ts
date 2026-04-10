@@ -1,7 +1,7 @@
 import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { OtpService } from './otp.service';
-import { RequestOtpDto, VerifyOtpDto } from './dto/otp.dto';
+import { RequestOtpDto, OtpVerifyDto } from './dto/otp.dto';
 
 @ApiTags('OTP')
 @Controller('otp')
@@ -33,7 +33,7 @@ export class OtpController {
   @ApiOperation({ summary: 'Verify an OTP' })
   @ApiResponse({ status: 200, description: 'OTP verified successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired OTP' })
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
+  async verifyOtp(@Body() dto: OtpVerifyDto) {
     const isValid = await this.otpService.validateOtp(dto.code, dto.type, {
       email: dto.email,
       phone: dto.phone,
