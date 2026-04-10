@@ -107,7 +107,7 @@ export class OtpService {
 
     // 7. Deliver OTP via the appropriate channel
     if (options.email) {
-      await this.notification.sendByEmail(options.email, plainCode, type, options.name);
+      // await this.notification.sendByEmail(options.email, plainCode, type, options.name);
     } else if (options.phone) {
       await this.notification.sendByPhone(options.phone, plainCode, type);
     }

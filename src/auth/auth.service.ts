@@ -17,7 +17,6 @@ import {
     VerifyOtpDto,
     ResetPasswordDto,
 } from '../auth/dto';
-import { MailService } from '../services/mail/mail.service';
 import { OtpService } from '../otp/otp.service';
 import { OtpType } from '../otp/schema/otp.schema';
 import * as bcrypt from 'bcrypt';
@@ -30,7 +29,6 @@ export class AuthService {
         @InjectModel(User.name)
         private readonly userModel: Model<User>,
         private readonly jwtService: JwtService,
-        private readonly mailService: MailService,
         private readonly otpService: OtpService,
     ) { }
 
