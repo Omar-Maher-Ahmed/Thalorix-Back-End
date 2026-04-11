@@ -3,3 +3,4 @@ export * from "./update-user.dto"
 export * from "./forgot-password.dto"
 export * from "./verify-otp.dto"
 export * from "./reset-password.dto"
+export * from './create-admin.dto';
