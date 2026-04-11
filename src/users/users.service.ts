@@ -27,12 +27,26 @@ export class UsersService {
   }
 
   // ================= Update =================
+  // async update(id: string, dto: UpdateUserDto) {
+  //   const user = await this.userModel.findByIdAndUpdate(id, dto, { new: true });
+  //   if (!user) throw new NotFoundException('User not found');
+  //   return { message: 'User updated successfully' };
+  // }
   async update(id: string, dto: UpdateUserDto) {
-    const user = await this.userModel.findByIdAndUpdate(id, dto, { new: true });
-    if (!user) throw new NotFoundException('User not found');
-    return { message: 'User updated successfully' };
-  }
 
+// delete dto.role;
+
+const user = await this.userModel.findByIdAndUpdate(
+id,
+dto,
+{ new: true }
+);
+
+if (!user) throw new NotFoundException('User not found');
+
+return { message: 'User updated successfully' };
+
+}
   // ================= Remove =================
   async remove(id: string) {
     const user = await this.userModel.findByIdAndDelete(id);

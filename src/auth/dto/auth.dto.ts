@@ -82,9 +82,9 @@ export class WebsiteSignUpDto {
     @Match("password", { message: "Confirm password must match password" })
     cPassword: string;// confirm password
 
-    @IsNotEmpty({ message: 'Role is required' })
-    @IsEnum(['admin', 'user', 'seller'], { message: 'Invalid role selection' })
-    role: string = 'user';
+    // @IsNotEmpty({ message: 'Role is required' })
+    // @IsEnum(['admin', 'user', 'seller'], { message: 'Invalid role selection' })
+    // role: string = 'user';
 
 }
 
@@ -147,9 +147,9 @@ export class MobileSignUpDto {
     @Match("password", { message: "Confirm password must match password" })
     cPassword: string;// confirm password
 
-    @IsNotEmpty({ message: 'Role is required' })
-    @IsEnum(['admin', 'user', 'seller'], { message: 'Invalid role selection' })
-    role: string;
+    // @IsNotEmpty({ message: 'Role is required' })
+    // @IsEnum(['admin', 'user', 'seller'], { message: 'Invalid role selection' })
+    // role: string;
 
 
 }
