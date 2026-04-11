@@ -27,13 +27,25 @@ export class UsersController {
 
   // ================= Protected Routes =================
 
-  @UseGuards(JwtAuthGuard, AuthGuard('jwt'), AccessTokenGuard)
+  // @UseGuards(JwtAuthGuard, AuthGuard('jwt'), AccessTokenGuard)
+  // @Get('')
+  // findAll() {
+  //   return this.usersService.findAll();
+  // }
+
+  // @UseGuards(JwtAuthGuard, AccessTokenGuard)
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.usersService.findById(id);
+  // }
+
+  @UseGuards(JwtAuthGuard) 
   @Get('')
   findAll() {
     return this.usersService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard, AccessTokenGuard)
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
