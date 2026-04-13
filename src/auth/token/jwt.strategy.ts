@@ -65,7 +65,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // ✅ مقارنة الـ raw token بالـ hashed token المخزن في DB
-    const isTokenValid = await bcrypt.compare(rawToken, user.currentAccessToken);
+    const isTokenValid = await bcrypt.compare(
+      rawToken,
+      user.currentAccessToken,
+    );
     if (!isTokenValid) {
       console.log('❌ Token mismatch! Session may have been invalidated.');
       throw new UnauthorizedException('Session expired, please login again');
@@ -78,6 +81,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: user._id,
       email: user.email,
       role: user.role,
+      currentAccessToken: user.currentAccessToken, // هيجي ولا لا؟
     };
   }
 }
