@@ -28,12 +28,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       .select('+currentAccessToken +refreshToken') // جيب الاتنين
       .exec();
 
-    console.log('📊 User from DB:', user ? {
-      id: user._id,
-      email: user.email,
-      hasAccessToken: !!user.currentAccessToken,
-      hasRefreshToken: !!user.refreshToken
-    } : '❌ NOT FOUND');
+    console.log(
+      '📊 User from DB:',
+      user
+        ? {
+            id: user._id,
+            email: user.email,
+            hasAccessToken: !!user.currentAccessToken,
+            hasRefreshToken: !!user.refreshToken,
+          }
+        : '❌ NOT FOUND',
+    );
 
     if (!user) {
       console.log('❌ User not found in database!');
@@ -52,7 +57,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: user._id,
       email: user.email,
       role: user.role,
-      currentAccessToken: user.currentAccessToken // هيجي ولا لا؟
+      currentAccessToken: user.currentAccessToken,
     };
   }
 }
