@@ -96,21 +96,31 @@ export class AuthService {
       const accessToken = this.jwtService.sign(payload, {
         expiresIn: '15m',
 <<<<<<< HEAD
+<<<<<<< HEAD
         // secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
         secret: process.env.JWT_SECRET,
 =======
         secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
 >>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
+=======
+        // secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
+        secret: process.env.JWT_SECRET
+>>>>>>> fc66d51 (feat: implement authentication service with role-based access control and token management guards)
       });
 
       const refreshToken = this.jwtService.sign(payload, {
         expiresIn: '7d',
+<<<<<<< HEAD
 <<<<<<< HEAD
         // secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
         secret: process.env.JWT_SECRET,
 =======
         secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
 >>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
+=======
+        // secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+        secret: process.env.JWT_SECRET
+>>>>>>> fc66d51 (feat: implement authentication service with role-based access control and token management guards)
       });
 
       // 7. Update user document with tokens
