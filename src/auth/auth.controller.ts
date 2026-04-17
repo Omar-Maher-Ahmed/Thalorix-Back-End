@@ -4,7 +4,7 @@ import {
   Body,
   BadRequestException,
   UseGuards,
-  Request
+  Request,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -14,7 +14,7 @@ import {
   WebsiteLoginDto,
   ForgotPasswordDto,
   VerifyOtpDto,
-  ResetPasswordDto
+  ResetPasswordDto,
 } from '../auth/dto';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -23,7 +23,7 @@ import { AuthGuard } from '@nestjs/passport';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('web/register')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
@@ -36,7 +36,10 @@ export class AuthController {
         .replace(/&quot;/g, '"')
         .replace(/&#x?[0-9A-F]+;/gi, '');
 
-      if (websiteSignUp.name.includes('<') || websiteSignUp.name.includes('>')) {
+      if (
+        websiteSignUp.name.includes('<') ||
+        websiteSignUp.name.includes('>')
+      ) {
         throw new BadRequestException('Name cannot contain HTML tags');
       }
     }
@@ -46,9 +49,7 @@ export class AuthController {
 
   @Post('mob/register')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  mobileRegister(
-    @Body() mobileSignUp: MobileSignUpDto,
-  ) {
+  mobileRegister(@Body() mobileSignUp: MobileSignUpDto) {
     return this.authService.mobileRegister(mobileSignUp);
   }
 
@@ -84,7 +85,7 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
-  // [OTP Integration]: راوت جديد بيستقبل طلب التفعيل للكود اللي جال للمستخدم سواء وقت التسجيل
+  // [OTP Integration]: راوت جديد بيستقبل طلب التفعيل للكود اللي جاء للمستخدم سواء وقت التسجيل
   @Post('verify-otp')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
