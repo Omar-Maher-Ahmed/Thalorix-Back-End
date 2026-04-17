@@ -40,9 +40,17 @@ export class AccessTokenGuard implements CanActivate {
         console.log('   - Token in database:', dbUser.currentAccessToken ? dbUser.currentAccessToken.substring(0, 20) + '...' : 'NONE');
 
         // ✅ المقارنة هنا
+        // if (!dbUser.currentAccessToken || dbUser.currentAccessToken !== token) {
+        //     console.log('❌ Token mismatch or expired session');
+        //     throw new UnauthorizedException('Invalid token session');
+        // }
+        // 🔥 Admin يعدي من غير أي تحقق
+        if (dbUser.role === 'admin') {
+        return true;
+        }
+
         if (!dbUser.currentAccessToken || dbUser.currentAccessToken !== token) {
-            console.log('❌ Token mismatch or expired session');
-            throw new UnauthorizedException('Invalid token session');
+        throw new UnauthorizedException('Invalid token session');
         }
 
         console.log('✅ Token validated successfully');
