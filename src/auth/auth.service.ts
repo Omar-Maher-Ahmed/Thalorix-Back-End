@@ -95,19 +95,31 @@ export class AuthService {
 
       const accessToken = this.jwtService.sign(payload, {
         expiresIn: '15m',
+<<<<<<< HEAD
         // secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
         secret: process.env.JWT_SECRET,
+=======
+        secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
       });
 
       const refreshToken = this.jwtService.sign(payload, {
         expiresIn: '7d',
+<<<<<<< HEAD
         // secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
         secret: process.env.JWT_SECRET,
+=======
+        secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
       });
 
       // 7. Update user document with tokens
       user.refreshToken = await bcrypt.hash(refreshToken, 10);
+<<<<<<< HEAD
       user.currentAccessToken = await bcrypt.hash(accessToken, 10); // ✅ hashed قبل التخزين
+=======
+      user.currentAccessToken = accessToken;
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
       user.lastLoginAt = new Date();
       user.loginAttempts = 0;
 
@@ -213,16 +225,25 @@ export class AuthService {
       // Generate tokens
       const accessToken = this.jwtService.sign(payload, {
         expiresIn: '15m',
+<<<<<<< HEAD
         secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
+=======
+        secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
       });
 
       const refreshToken = this.jwtService.sign(payload, {
         expiresIn: '7d',
+<<<<<<< HEAD
         secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
+=======
+        secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
       });
 
       console.log('13. Tokens generated successfully');
 
+<<<<<<< HEAD
       // Hash and store both tokens
       console.log('14. Hashing tokens...');
       const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
@@ -230,6 +251,15 @@ export class AuthService {
 
       user.refreshToken = hashedRefreshToken;
       user.currentAccessToken = hashedAccessToken; // ✅ hashed
+=======
+      // Hash and store refresh token
+      console.log('14. Hashing refresh token...');
+      const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+      // ✅ التعديل هنا: خزن الـ accessToken كمان
+      user.refreshToken = hashedRefreshToken;
+      user.currentAccessToken = accessToken; // <-- ضيف السطر ده
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
       user.lastLoginAt = new Date();
       user.loginAttempts = 0;
 
@@ -285,12 +315,18 @@ export class AuthService {
   async refreshAccessToken(refreshToken: string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
+<<<<<<< HEAD
         secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
       });
       const user = await this.userModel
         .findById(payload.sub)
         .select('+refreshToken +currentAccessToken')
         .exec();
+=======
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+      const user = await this.userModel.findById(payload.sub);
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
 
       if (!user || !user.refreshToken) {
         throw new UnauthorizedException('Invalid refresh token');
@@ -310,6 +346,7 @@ export class AuthService {
       };
       const newAccessToken = this.jwtService.sign(newPayload, {
         expiresIn: '15m',
+<<<<<<< HEAD
         secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
       });
       const newRefreshToken = this.jwtService.sign(newPayload, {
@@ -320,6 +357,16 @@ export class AuthService {
       const hashedNewAccessToken = await bcrypt.hash(newAccessToken, 10); // ✅ hash قبل التخزين
       user.refreshToken = hashedNewRefreshToken;
       user.currentAccessToken = hashedNewAccessToken; // ✅ hashed
+=======
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+      const newRefreshToken = this.jwtService.sign(newPayload, {
+        expiresIn: '7d',
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+      const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+      user.refreshToken = hashedNewRefreshToken;
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
       await user.save();
       return {
         accessToken: newAccessToken,
@@ -453,7 +500,11 @@ export class AuthService {
     // Use PHONE_VERIFICATION if SMS is primarily used, but we use OtpType
     await this.otpService.createOtp(OtpType.PHONE_VERIFICATION, {
       userId: newUser._id,
+<<<<<<< HEAD
       email: dto.email,
+=======
+      phone: dto.phone,
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
       name: dto.name,
     });
 
@@ -471,6 +522,7 @@ export class AuthService {
 
     if (!user) {
       throw new NotFoundException('User not found');
+<<<<<<< HEAD
     }
     await this.otpService.createOtp(OtpType.PASSWORD_RESET, {
       userId: user._id,
@@ -509,6 +561,25 @@ export class AuthService {
 
   // ================= Reset Password =================
   async resetPassword(dto: ResetPasswordDto) {
+=======
+    }
+
+    // [OTP Integration]: بدلاً من إنشاء توكن وحفظه في حساب المستخدم وتعديل قاعدة البيانات يدوياً
+    // بقا النظام كله رايح لـ OtpService وهي بتدير إنشاء الكود وتشفيره وإرساله
+    await this.otpService.createOtp(OtpType.PASSWORD_RESET, {
+      userId: user._id,
+      email: forgotPasswordDto.email,
+      phone: forgotPasswordDto.phone,
+      name: user.name,
+    });
+
+    return { message: 'Password reset OTP sent' };
+  }
+
+  // ================= Verify OTP =================
+  // [OTP Integration]: دي دالة جديدة المخصصة لاستقبال طلب التفعيل وتمرير الكود للـ OtpService يتأكد منه
+  async verifyOtp(dto: VerifyOtpDto) {
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
     const user = await this.userModel.findOne({
       $or: [{ email: dto.email }, { phone: dto.phone }],
     });
@@ -517,6 +588,7 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+<<<<<<< HEAD
     await this.otpService.validateOtp(dto.code, OtpType.PASSWORD_RESET, {
       userId: user._id,
       email: dto.email,
@@ -524,6 +596,54 @@ export class AuthService {
     });
     user.password = await this.hashPassword(dto.newPassword);
 
+=======
+    // [OTP Integration]: بنحدد نوع الكود اللي هيدور فيه على أساس هل المستخدم باعت إيميل ولا رقم تليفون
+    const type = dto.email
+      ? OtpType.EMAIL_VERIFICATION
+      : OtpType.PHONE_VERIFICATION;
+
+    // [OTP Integration]: هنا الـ validateOtp بيقوم بكل الشغل ورا الكواليس (قفل الكود وتجنب اختراقه وتأكيده)
+    await this.otpService.validateOtp(dto.code, type, {
+      userId: user._id,
+      email: dto.email,
+      phone: dto.phone,
+    });
+
+    // [OTP Integration]: الدالة لو ماعملتش throw لمشكلة، ده معناه التوثيق ناجح وبنعدل حالة المستخدم
+    // user.isVerified = true;
+    await user.save();
+    user.isVerified = true;
+    return { message: 'Account verified successfully' };
+  }
+
+  // ================= Reset Password =================
+  // [OTP Integration]: دي الدالة اللي بتخلص عملية الاستعادة. بتستقبل التوكن مع الباسورد الجديد وتأكده
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.userModel.findOne({
+      $or: [{ email: dto.email }, { phone: dto.phone }],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // [OTP Integration]: التأكد إن الكود اللي اتبعت مخصص ومكتوب صح ومسجل بانه يطابق المستخدم ده
+    await this.otpService.validateOtp(dto.code, OtpType.PASSWORD_RESET, {
+      userId: user._id,
+      email: dto.email,
+      phone: dto.phone,
+    });
+
+    // [OTP Integration]: تشفير وتعديل الباسورد الجديد وتحديثه
+    user.password = await this.hashPassword(dto.newPassword);
+
+    // Optional: cancel all other active tokens
+    // [OTP Integration]: كحركة أمان إضافية، بنحطلها أمر بأنها تمسح كل أكواد الاسترداد اللي لسه مفتوحة للحساب ده
+    await this.otpService.expireAllOtps(OtpType.PASSWORD_RESET, {
+      userId: user._id,
+    });
+
+>>>>>>> 4170856 (refactor: remove debug logs from auth service and controller login methods)
     await user.save();
 
     return { message: 'Password reset successfully' };
