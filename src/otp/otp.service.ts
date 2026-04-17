@@ -75,10 +75,10 @@ export class OtpService {
 
     try {
       // 1. Rate limit gate
-      await this.checkRateLimit(identifier);
+      // await this.checkRateLimit(identifier);
 
       // 2. Hybrid invalidation — if a valid OTP still exists, tell user to wait
-      await this.rejectIfActiveOtpExists(type, options);
+      // await this.rejectIfActiveOtpExists(type, options);
 
       // 3. Generate random 6-digit code (CSPRNG)
       const plainCode = randomInt(100_000, 1_000_000).toString();
@@ -98,7 +98,7 @@ export class OtpService {
       });
 
       // 6. Record this request in the rate limit tracker
-      await this.recordRequest(identifier);
+      // await this.recordRequest(identifier);
 
       // 7. Deliver OTP via the appropriate channel
       if (options.email) {
@@ -178,88 +178,88 @@ export class OtpService {
   // RATE LIMITING
   // ────────────────────────────────────────────────────────────────────────────
 
-  private async checkRateLimit(identifier: string): Promise<void> {
-    const record = await this.rateLimitModel.findOne({ identifier });
-    if (!record) return;
+  // private async checkRateLimit(identifier: string): Promise<void> {
+  //   const record = await this.rateLimitModel.findOne({ identifier });
+  //   if (!record) return;
 
-    const now = new Date();
+  //   const now = new Date();
 
-    // ── Permanent lock ──
-    if (record.isPermanentlyLocked) {
-      if (record.resetAt && record.resetAt <= now) {
-        this.logger.log(`Hard lock expired for ${identifier}. Resetting rate limit.`);
-        await this.rateLimitModel.findOneAndUpdate(
-          { identifier },
-          {
-            $set: {
-              requestCount: 0,
-              isPermanentlyLocked: false,
-              lockedUntil: null,
-              resetAt: null,
-            },
-          },
-        );
-        return;
-      }
+  //   // ── Permanent lock ──
+  //   if (record.isPermanentlyLocked) {
+  //     if (record.resetAt && record.resetAt <= now) {
+  //       this.logger.log(`Hard lock expired for ${identifier}. Resetting rate limit.`);
+  //       await this.rateLimitModel.findOneAndUpdate(
+  //         { identifier },
+  //         {
+  //           $set: {
+  //             requestCount: 0,
+  //             isPermanentlyLocked: false,
+  //             lockedUntil: null,
+  //             resetAt: null,
+  //           },
+  //         },
+  //       );
+  //       return;
+  //     }
 
-      const msLeft = record.resetAt ? record.resetAt.getTime() - now.getTime() : 0;
-      this.logger.warn(`Rate limit triggered: ${identifier} is permanently locked for ${msToHuman(msLeft)}`);
-      throw new HttpException(
-        {
-          statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          message: `Account locked due to too many OTP requests. Please contact technical support or try again after ${msToHuman(msLeft)}.`,
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
+  //     const msLeft = record.resetAt ? record.resetAt.getTime() - now.getTime() : 0;
+  //     this.logger.warn(`Rate limit triggered: ${identifier} is permanently locked for ${msToHuman(msLeft)}`);
+  //     throw new HttpException(
+  //       {
+  //         statusCode: HttpStatus.TOO_MANY_REQUESTS,
+  //         message: `Account locked due to too many OTP requests. Please contact technical support or try again after ${msToHuman(msLeft)}.`,
+  //       },
+  //       HttpStatus.TOO_MANY_REQUESTS,
+  //     );
+  //   }
 
-    // ── Cooldown window ──
-    if (record.lockedUntil && record.lockedUntil > now) {
-      const msLeft = record.lockedUntil.getTime() - now.getTime();
-      this.logger.warn(`Rate limit triggered: ${identifier} is in cooldown for ${msToHuman(msLeft)}`);
-      throw new HttpException(
-        {
-          statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          message: `Too many OTP requests. Please wait ${msToHuman(msLeft)} before requesting a new code.`,
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
-  }
+  //   // ── Cooldown window ──
+  //   if (record.lockedUntil && record.lockedUntil > now) {
+  //     const msLeft = record.lockedUntil.getTime() - now.getTime();
+  //     this.logger.warn(`Rate limit triggered: ${identifier} is in cooldown for ${msToHuman(msLeft)}`);
+  //     throw new HttpException(
+  //       {
+  //         statusCode: HttpStatus.TOO_MANY_REQUESTS,
+  //         message: `Too many OTP requests. Please wait ${msToHuman(msLeft)} before requesting a new code.`,
+  //       },
+  //       HttpStatus.TOO_MANY_REQUESTS,
+  //     );
+  //   }
+  // }
 
-  private async recordRequest(identifier: string): Promise<void> {
-    const record = await this.rateLimitModel.findOneAndUpdate(
-      { identifier },
-      { $inc: { requestCount: 1 } },
-      { new: true, upsert: true },
-    );
+  // private async recordRequest(identifier: string): Promise<void> {
+  //   const record = await this.rateLimitModel.findOneAndUpdate(
+  //     { identifier },
+  //     { $inc: { requestCount: 1 } },
+  //     { new: true, upsert: true },
+  //   );
 
-    const count = record.requestCount;
+  //   const count = record.requestCount;
 
-    if (count >= MAX_REQUESTS) {
-      this.logger.error(`DANGER: ${identifier} reached max requests. Applying 48h hard lock.`);
-      await this.rateLimitModel.findOneAndUpdate(
-        { identifier },
-        {
-          $set: {
-            isPermanentlyLocked: true,
-            lockedUntil: null,
-            resetAt: new Date(Date.now() + PERMANENT_LOCK_RESET_MS),
-          },
-        },
-      );
-      return;
-    }
+  //   if (count >= MAX_REQUESTS) {
+  //     this.logger.error(`DANGER: ${identifier} reached max requests. Applying 48h hard lock.`);
+  //     await this.rateLimitModel.findOneAndUpdate(
+  //       { identifier },
+  //       {
+  //         $set: {
+  //           isPermanentlyLocked: true,
+  //           lockedUntil: null,
+  //           resetAt: new Date(Date.now() + PERMANENT_LOCK_RESET_MS),
+  //         },
+  //       },
+  //     );
+  //     return;
+  //   }
 
-    const nextCooldown = COOLDOWNS_MS[count];
-    if (nextCooldown > 0) {
-      this.logger.debug(`Setting next cooldown for ${identifier}: ${msToHuman(nextCooldown)}`);
-      await this.rateLimitModel.findOneAndUpdate(
-        { identifier },
-        { $set: { lockedUntil: new Date(Date.now() + nextCooldown) } },
-      );
-    }
-  }
+  //   const nextCooldown = COOLDOWNS_MS[count];
+  //   if (nextCooldown > 0) {
+  //     this.logger.debug(`Setting next cooldown for ${identifier}: ${msToHuman(nextCooldown)}`);
+  //     await this.rateLimitModel.findOneAndUpdate(
+  //       { identifier },
+  //       { $set: { lockedUntil: new Date(Date.now() + nextCooldown) } },
+  //     );
+  //   }
+  // }
 
   // ────────────────────────────────────────────────────────────────────────────
   // HYBRID INVALIDATION
