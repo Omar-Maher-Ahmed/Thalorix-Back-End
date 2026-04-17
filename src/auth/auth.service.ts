@@ -95,12 +95,14 @@ export class AuthService {
 
       const accessToken = this.jwtService.sign(payload, {
         expiresIn: '15m',
-        secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
+        // secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
+        secret: process.env.JWT_SECRET
       });
 
       const refreshToken = this.jwtService.sign(payload, {
         expiresIn: '7d',
-        secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+        // secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+        secret: process.env.JWT_SECRET
       });
 
       // 7. Update user document with tokens

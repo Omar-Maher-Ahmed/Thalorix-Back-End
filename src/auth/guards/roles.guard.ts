@@ -30,7 +30,11 @@ export class RolesGuard implements CanActivate {
         if (!user) {
             throw new ForbiddenException('No user found in request');
         }
-
+        
+        // 🔥 admin يعدي أي role
+        if (user.role === 'admin') {
+        return true;
+        }
         const hasRole = requiredRoles.includes(user.role);
 
         if (!hasRole) {
