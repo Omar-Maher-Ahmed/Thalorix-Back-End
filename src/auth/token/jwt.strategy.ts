@@ -5,6 +5,8 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/users/schema/user.schema';
+import * as bcrypt from 'bcrypt';
+import { Request } from 'express';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -15,17 +17,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: configService.get<string>('JWT_SECRET')!,
+      passReqToCallback: true, // ✅ عشان نقدر نجيب الـ raw token من الـ request
     });
   }
 
-  async validate(payload: any) {
+  async validate(req: Request, payload: any) {
     console.log('\n' + '='.repeat(60));
     console.log('🔥 JWT Payload:', payload);
 
-    // ✅ مهم: استخدم select عشان تجيب currentAccessToken
+    // ✅ استخراج الـ raw token من الـ request
+    const rawToken = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    if (!rawToken) {
+      throw new UnauthorizedException('No token provided');
+    }
+
+    // ✅ جيب الـ user مع الـ currentAccessToken المخزن
     const user = await this.userModel
       .findById(payload.sub)
-      .select('+currentAccessToken +refreshToken') // جيب الاتنين
+      .select('+currentAccessToken +refreshToken')
       .exec();
 
     console.log(
@@ -45,9 +54,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
+    if (!user.currentAccessToken) {
+      console.log('❌ No active session found in database!');
+      throw new UnauthorizedException('No active session, please login again');
+    }
+
     if (user.isBlocked || user.isDeleted) {
       console.log('❌ User is blocked or deleted');
       throw new UnauthorizedException('Account not available');
+    }
+
+    // ✅ مقارنة الـ raw token بالـ hashed token المخزن في DB
+    const isTokenValid = await bcrypt.compare(rawToken, user.currentAccessToken);
+    if (!isTokenValid) {
+      console.log('❌ Token mismatch! Session may have been invalidated.');
+      throw new UnauthorizedException('Session expired, please login again');
     }
 
     console.log('✅ User validated:', user.email);
@@ -57,7 +78,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: user._id,
       email: user.email,
       role: user.role,
-      currentAccessToken: user.currentAccessToken,
     };
   }
 }

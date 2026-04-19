@@ -96,18 +96,18 @@ export class AuthService {
       const accessToken = this.jwtService.sign(payload, {
         expiresIn: '15m',
         // secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
-        secret: process.env.JWT_SECRET
+        secret: process.env.JWT_SECRET,
       });
 
       const refreshToken = this.jwtService.sign(payload, {
         expiresIn: '7d',
         // secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
-        secret: process.env.JWT_SECRET
+        secret: process.env.JWT_SECRET,
       });
 
       // 7. Update user document with tokens
       user.refreshToken = await bcrypt.hash(refreshToken, 10);
-      user.currentAccessToken = accessToken;
+      user.currentAccessToken = await bcrypt.hash(accessToken, 10); // ✅ hashed قبل التخزين
       user.lastLoginAt = new Date();
       user.loginAttempts = 0;
 
@@ -213,23 +213,23 @@ export class AuthService {
       // Generate tokens
       const accessToken = this.jwtService.sign(payload, {
         expiresIn: '15m',
-        secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
+        secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
       });
 
       const refreshToken = this.jwtService.sign(payload, {
         expiresIn: '7d',
-        secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+        secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
       });
 
       console.log('13. Tokens generated successfully');
 
-      // Hash and store refresh token
-      console.log('14. Hashing refresh token...');
+      // Hash and store both tokens
+      console.log('14. Hashing tokens...');
       const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+      const hashedAccessToken = await bcrypt.hash(accessToken, 10); // ✅ hash قبل التخزين
 
-      // ✅ التعديل هنا: خزن الـ accessToken كمان
       user.refreshToken = hashedRefreshToken;
-      user.currentAccessToken = accessToken; // <-- ضيف السطر ده
+      user.currentAccessToken = hashedAccessToken; // ✅ hashed
       user.lastLoginAt = new Date();
       user.loginAttempts = 0;
 
@@ -285,9 +285,12 @@ export class AuthService {
   async refreshAccessToken(refreshToken: string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
       });
-      const user = await this.userModel.findById(payload.sub);
+      const user = await this.userModel
+        .findById(payload.sub)
+        .select('+refreshToken +currentAccessToken')
+        .exec();
 
       if (!user || !user.refreshToken) {
         throw new UnauthorizedException('Invalid refresh token');
@@ -307,14 +310,16 @@ export class AuthService {
       };
       const newAccessToken = this.jwtService.sign(newPayload, {
         expiresIn: '15m',
-        secret: process.env.JWT_ACCESS_SECRET,
+        secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
       });
       const newRefreshToken = this.jwtService.sign(newPayload, {
         expiresIn: '7d',
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: process.env.JWT_SECRET, // ✅ نفس الـ secret في كل مكان
       });
       const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+      const hashedNewAccessToken = await bcrypt.hash(newAccessToken, 10); // ✅ hash قبل التخزين
       user.refreshToken = hashedNewRefreshToken;
+      user.currentAccessToken = hashedNewAccessToken; // ✅ hashed
       await user.save();
       return {
         accessToken: newAccessToken,
@@ -448,7 +453,7 @@ export class AuthService {
     // Use PHONE_VERIFICATION if SMS is primarily used, but we use OtpType
     await this.otpService.createOtp(OtpType.PHONE_VERIFICATION, {
       userId: newUser._id,
-      phone: dto.phone,
+      email: dto.email,
       name: dto.name,
     });
 
@@ -473,7 +478,7 @@ export class AuthService {
     await this.otpService.createOtp(OtpType.PASSWORD_RESET, {
       userId: user._id,
       email: forgotPasswordDto.email,
-      phone: forgotPasswordDto.phone,
+      // phone: forgotPasswordDto.phone,
       name: user.name,
     });
 
@@ -500,7 +505,7 @@ export class AuthService {
     await this.otpService.validateOtp(dto.code, type, {
       userId: user._id,
       email: dto.email,
-      phone: dto.phone,
+      // phone: dto.phone,
     });
 
     // [OTP Integration]: الدالة لو ماعملتش throw لمشكلة، ده معناه التوثيق ناجح وبنعدل حالة المستخدم
@@ -525,7 +530,7 @@ export class AuthService {
     await this.otpService.validateOtp(dto.code, OtpType.PASSWORD_RESET, {
       userId: user._id,
       email: dto.email,
-      phone: dto.phone,
+      // phone: dto.phone,
     });
 
     // [OTP Integration]: تشفير وتعديل الباسورد الجديد وتحديثه
@@ -533,9 +538,10 @@ export class AuthService {
 
     // Optional: cancel all other active tokens
     // [OTP Integration]: كحركة أمان إضافية، بنحطلها أمر بأنها تمسح كل أكواد الاسترداد اللي لسه مفتوحة للحساب ده
-    await this.otpService.expireAllOtps(OtpType.PASSWORD_RESET, {
-      userId: user._id,
-    });
+
+    // await this.otpService.expireAllOtps(OtpType.PASSWORD_RESET, {
+    //   userId: user._id,
+    // });
 
     await user.save();
 

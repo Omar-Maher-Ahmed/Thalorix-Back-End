@@ -13,11 +13,14 @@ export class OtpController {
   @ApiOperation({ summary: 'Request a new OTP' })
   @ApiResponse({ status: 200, description: 'OTP sent successfully' })
   @ApiResponse({ status: 429, description: 'Rate limit exceeded' })
-  @ApiResponse({ status: 400, description: 'Invalid request or active OTP exists' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request or active OTP exists',
+  })
   async requestOtp(@Body() dto: RequestOtpDto) {
     const code = await this.otpService.createOtp(dto.type, {
       email: dto.email,
-      phone: dto.phone,
+      // phone: dto.phone,
       userId: undefined,
       name: dto.name,
     });
@@ -36,7 +39,7 @@ export class OtpController {
   async verifyOtp(@Body() dto: OtpVerifyDto) {
     const isValid = await this.otpService.validateOtp(dto.code, dto.type, {
       email: dto.email,
-      phone: dto.phone,
+      // phone: dto.phone,
     });
 
     return {
