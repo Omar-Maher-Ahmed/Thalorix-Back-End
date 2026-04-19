@@ -242,7 +242,6 @@ export class AuthService {
         expiresIn: '7d',
         secret: process.env.JWT_SECRET,
       });
-
       user.refreshToken = await bcrypt.hash(newRefreshToken, 10);
       user.currentAccessToken = await bcrypt.hash(newAccessToken, 10);
       await user.save();
