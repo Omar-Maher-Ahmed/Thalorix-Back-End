@@ -472,9 +472,6 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    // [OTP Integration]: بدلاً من إنشاء توكن وحفظه في حساب المستخدم وتعديل قاعدة البيانات يدوياً
-    // بقا النظام كله رايح لـ OtpService وهي بتدير إنشاء الكود وتشفيره وإرساله
     await this.otpService.createOtp(OtpType.PASSWORD_RESET, {
       userId: user._id,
       email: forgotPasswordDto.email,
@@ -486,7 +483,6 @@ export class AuthService {
   }
 
   // ================= Verify OTP =================
-  // [OTP Integration]: دي دالة جديدة المخصصة لاستقبال طلب التفعيل وتمرير الكود للـ OtpService يتأكد منه
   async verifyOtp(dto: VerifyOtpDto) {
     const user = await this.userModel.findOne({
       $or: [{ email: dto.email }, { phone: dto.phone }],
@@ -496,27 +492,22 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    // [OTP Integration]: بنحدد نوع الكود اللي هيدور فيه على أساس هل المستخدم باعت إيميل ولا رقم تليفون
     const type = dto.email
       ? OtpType.EMAIL_VERIFICATION
       : OtpType.PHONE_VERIFICATION;
 
-    // [OTP Integration]: هنا الـ validateOtp بيقوم بكل الشغل ورا الكواليس (قفل الكود وتجنب اختراقه وتأكيده)
     await this.otpService.validateOtp(dto.code, type, {
       userId: user._id,
       email: dto.email,
       // phone: dto.phone,
     });
 
-    // [OTP Integration]: الدالة لو ماعملتش throw لمشكلة، ده معناه التوثيق ناجح وبنعدل حالة المستخدم
-    // user.isVerified = true;
     await user.save();
     user.isVerified = true;
     return { message: 'Account verified successfully' };
   }
 
   // ================= Reset Password =================
-  // [OTP Integration]: دي الدالة اللي بتخلص عملية الاستعادة. بتستقبل التوكن مع الباسورد الجديد وتأكده
   async resetPassword(dto: ResetPasswordDto) {
     const user = await this.userModel.findOne({
       $or: [{ email: dto.email }, { phone: dto.phone }],
@@ -526,22 +517,12 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    // [OTP Integration]: التأكد إن الكود اللي اتبعت مخصص ومكتوب صح ومسجل بانه يطابق المستخدم ده
     await this.otpService.validateOtp(dto.code, OtpType.PASSWORD_RESET, {
       userId: user._id,
       email: dto.email,
       // phone: dto.phone,
     });
-
-    // [OTP Integration]: تشفير وتعديل الباسورد الجديد وتحديثه
     user.password = await this.hashPassword(dto.newPassword);
-
-    // Optional: cancel all other active tokens
-    // [OTP Integration]: كحركة أمان إضافية، بنحطلها أمر بأنها تمسح كل أكواد الاسترداد اللي لسه مفتوحة للحساب ده
-
-    // await this.otpService.expireAllOtps(OtpType.PASSWORD_RESET, {
-    //   userId: user._id,
-    // });
 
     await user.save();
 
