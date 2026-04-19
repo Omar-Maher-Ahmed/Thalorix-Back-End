@@ -15,13 +15,16 @@ import { APP_GUARD } from '@nestjs/core';
 import { OrdersModule } from './orders/orders.module';
 import { OtpModule } from './otp/otp.module';
 import { MailerModule } from './services/mailer/mailer.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -34,8 +37,9 @@ import { MailerModule } from './services/mailer/mailer.module';
         retryDelay: 3000,
       }),
     }),
-    UsersModule,
+    AdminModule,
     AuthModule,
+    UsersModule,
     MarketPlaceModule,
     TemplatesModule,
     ChatModule,
@@ -48,4 +52,4 @@ import { MailerModule } from './services/mailer/mailer.module';
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
-export class AppModule { }
+export class AppModule {}

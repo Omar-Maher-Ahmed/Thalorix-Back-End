@@ -46,7 +46,7 @@ export class AdminService {
     });
 
     if (existingUser) {
-      throw new NotFoundException('User already exists');
+      throw new NotFoundException('Admin already exists');
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
