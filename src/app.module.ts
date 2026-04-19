@@ -16,7 +16,7 @@ import { OrdersModule } from './orders/orders.module';
 import { OtpModule } from './otp/otp.module';
 import { MailerModule } from './services/mailer/mailer.module';
 import { AdminModule } from './admin/admin.module';
-
+import { CommunityModule } from './community/community.module';
 @Module({
   imports: [
     ThrottlerModule.forRoot([
@@ -48,8 +48,10 @@ import { AdminModule } from './admin/admin.module';
     OrdersModule,
     OtpModule,
     MailerModule,
+    CommunityModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+
 })
 export class AppModule {}
