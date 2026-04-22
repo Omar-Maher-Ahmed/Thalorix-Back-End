@@ -152,13 +152,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         .findById(payload.sub)
         .select('+currentAccessToken')
         .exec();
-      console.log('Admin search result:', user ? 'Found' : 'Not Found');
     } else {
       user = await this.userModel
         .findById(payload.sub)
         .select('+currentAccessToken')
         .exec();
-      console.log('User search result:', user ? 'Found' : 'Not Found');
     }
 
     // 2. التحقق من وجود الحساب
