@@ -1,3 +1,5 @@
+
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -29,6 +31,34 @@ export class CommunityService {
     return this.postModel.find().sort({ createdAt: -1 });
   }
 
+  // 🟢 Update Post
+  async updatePost(postId: string, dto: CreatePostDto) {
+    const post = await this.postModel.findByIdAndUpdate(
+      postId,
+      {
+        content: dto.content,
+        image: dto.image,
+      },
+      { new: true },
+    );
+
+    if (!post) throw new NotFoundException('Post not found');
+
+    return post;
+  }
+
+  // 🟢 Delete Post
+  async deletePost(postId: string) {
+    const post = await this.postModel.findByIdAndDelete(postId);
+
+    if (!post) throw new NotFoundException('Post not found');
+
+    // نحذف الكومنتات المرتبطة بيه
+    await this.commentModel.deleteMany({ postId });
+
+    return { message: 'Post deleted' };
+  }
+
   // 🟢 Add Comment
   async addComment(postId: string, dto: CreateCommentDto) {
     const post = await this.postModel.findById(postId);
@@ -38,7 +68,6 @@ export class CommunityService {
       postId,
       userId: dto.userId,
       content: dto.content,
-
     });
 
     // نزود العداد
@@ -54,5 +83,34 @@ export class CommunityService {
     return this.commentModel
       .find({ postId })
       .sort({ createdAt: -1 });
+  }
+
+  // 🟢 Update Comment
+  async updateComment(commentId: string, dto: CreateCommentDto) {
+    const comment = await this.commentModel.findByIdAndUpdate(
+      commentId,
+      {
+        content: dto.content,
+      },
+      { new: true },
+    );
+
+    if (!comment) throw new NotFoundException('Comment not found');
+
+    return comment;
+  }
+
+  // 🟢 Delete Comment
+  async deleteComment(commentId: string) {
+    const comment = await this.commentModel.findByIdAndDelete(commentId);
+
+    if (!comment) throw new NotFoundException('Comment not found');
+
+    // نقلل عداد الكومنتات
+    await this.postModel.findByIdAndUpdate(comment.postId, {
+      $inc: { commentsCount: -1 },
+    });
+
+    return { message: 'Comment deleted' };
   }
 }
