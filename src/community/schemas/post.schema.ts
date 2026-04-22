@@ -1,3 +1,4 @@
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
@@ -6,7 +7,7 @@ export type PostDocument = Post & Document;
 @Schema({ timestamps: true })
 export class Post {
   @Prop({ required: true })
-  authorId: string;
+  userId: string;
 
   @Prop({ required: true })
   content: string;
@@ -19,6 +20,7 @@ export class Post {
 
   @Prop({ default: 0 })
   commentsCount: number;
+
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);
