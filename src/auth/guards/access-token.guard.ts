@@ -30,10 +30,6 @@ export class AccessTokenGuard implements CanActivate {
       throw new UnauthorizedException('Invalid session');
     }
 
-    console.log(
-      `🔍 AccessTokenGuard: Checking access for ${userFromJwt.role}...`,
-    );
-
     let account;
 
     if (userFromJwt.role === 'admin') {
@@ -42,7 +38,6 @@ export class AccessTokenGuard implements CanActivate {
         .select('+currentAccessToken');
 
       if (!account) {
-        console.log('❌ Admin not found in DB');
         throw new UnauthorizedException('Admin account not found');
       }
     } else {
@@ -51,12 +46,10 @@ export class AccessTokenGuard implements CanActivate {
         .select('+currentAccessToken');
 
       if (!account) {
-        console.log('❌ User not found in DB');
         throw new UnauthorizedException('User account not found');
       }
 
       if (!account.currentAccessToken || account.currentAccessToken !== token) {
-        console.log('❌ Token mismatch or session expired');
         throw new UnauthorizedException('Session invalid, please login again');
       }
     }
@@ -65,9 +58,6 @@ export class AccessTokenGuard implements CanActivate {
       throw new UnauthorizedException('Account is no longer active');
     }
 
-    console.log(
-      `✅ AccessTokenGuard: ${userFromJwt.role} validated successfully`,
-    );
     return true;
   }
 }
