@@ -1,7 +1,7 @@
-
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../users/schema/user.schema';
+import { Admin, AdminSchema } from '../admin/schema/admin.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from '../auth/token/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
@@ -12,23 +12,26 @@ import { AccessTokenGuard } from './guards/access-token.guard';
 import { OtpModule } from '../otp/otp.module';
 
 @Module({
-    imports: [
-        PassportModule.register({ defaultStrategy: 'jwt' }),
-        MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-        OtpModule,
+  imports: [
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Admin.name, schema: AdminSchema },
+    ]),
+    OtpModule,
 
-        JwtModule.registerAsync({
-            inject: [ConfigService],
-            useFactory: (config: ConfigService) => ({
-                secret: config.get<string>('JWT_SECRET') as string,
-                signOptions: {
-                    expiresIn: Number(config.get('JWT_ACCESS_EXPIRES')),
-                },
-            }),
-        }),
-    ],
-    controllers: [AuthController],
-    providers: [AuthService, JwtStrategy, AccessTokenGuard],
-    exports: [AccessTokenGuard],
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET') as string,
+        signOptions: {
+          expiresIn: Number(config.get('JWT_ACCESS_EXPIRES')),
+        },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy, AccessTokenGuard],
+  exports: [AccessTokenGuard],
 })
-export class AuthModule { }
+export class AuthModule {}

@@ -5,6 +5,7 @@ import {
   MinLength,
   IsOptional,
   IsNumberString,
+  Matches,
 } from 'class-validator';
 
 export class UpdateAdminDto {
@@ -14,6 +15,9 @@ export class UpdateAdminDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^[\u0600-\u06FFa-zA-Z\s]+$/, {
+    message: 'Name must contain only letters and spaces',
+  })
   @MinLength(2, { message: 'Name is too short' })
   name?: string;
 

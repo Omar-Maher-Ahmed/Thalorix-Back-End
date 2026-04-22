@@ -7,17 +7,19 @@ import { Model } from 'mongoose';
 import { User } from 'src/users/schema/user.schema';
 import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
+import { Admin } from 'src/admin/schema/admin.schema';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Admin.name) private adminModel: Model<Admin>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: configService.get<string>('JWT_SECRET')!,
-      passReqToCallback: true, // ✅ عشان نقدر نجيب الـ raw token من الـ request
+      passReqToCallback: true,
     });
   }
 
@@ -84,38 +86,104 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   //     currentAccessToken: user.currentAccessToken, // هيجي ولا لا؟
   //   };
   // }
+  // async validate(req: Request, payload: any) {
+  //   // استخراج الـ Token من الهيدر مباشرة
+  //   const authHeader = req.headers.authorization;
+  //   const rawToken = authHeader ? authHeader.split(' ')[1] : null;
+
+  //   if (!rawToken) {
+  //     throw new UnauthorizedException('No token provided');
+  //   }
+
+  //   // ... باقي الكود بتاع الـ DB ومقارنة الـ Bcrypt
+
+  //   let user;
+
+  //   if (payload.role === 'admin') {
+  //     user = await this.userModel
+  //       .findById(payload.sub)
+  //       .select('+currentAccessToken')
+  //       .exec();
+  //   } else {
+  //     user = await this.userModel
+  //       .findById(payload.sub)
+  //       .select('+currentAccessToken')
+  //       .exec();
+  //   }
+
+  //   if (!user) {
+  //     throw new UnauthorizedException('User not found');
+  //   }
+
+  //   if (!user.currentAccessToken) {
+  //     throw new UnauthorizedException('Session expired, please login again');
+  //   }
+
+  //   // التحقق بالـ Bcrypt
+  //   const isTokenValid = await bcrypt.compare(
+  //     rawToken,
+  //     user.currentAccessToken,
+  //   );
+
+  //   if (!isTokenValid) {
+  //     throw new UnauthorizedException('Session expired');
+  //   }
+
+  //   return {
+  //     userId: user._id,
+  //     email: user.email,
+  //     role: user.role,
+  //     // الـ currentAccessToken هنا هيكون الـ Hash اللي في القاعدة
+  //     accessTokenHash: user.currentAccessToken,
+  //   };
+  // }
+
   async validate(req: Request, payload: any) {
-    // استخراج الـ Token من الهيدر مباشرة
     const authHeader = req.headers.authorization;
     const rawToken = authHeader ? authHeader.split(' ')[1] : null;
 
-    if (!rawToken) {
-      throw new UnauthorizedException('No token provided');
+    if (!rawToken) throw new UnauthorizedException('No token provided');
+
+    let user;
+
+    // 1. اختار الموديل الصح بناءً على الـ Role
+    if (payload.role === 'admin') {
+      user = await this.adminModel
+        .findById(payload.sub)
+        .select('+currentAccessToken')
+        .exec();
+      console.log('Admin search result:', user ? 'Found' : 'Not Found');
+    } else {
+      user = await this.userModel
+        .findById(payload.sub)
+        .select('+currentAccessToken')
+        .exec();
+      console.log('User search result:', user ? 'Found' : 'Not Found');
     }
 
-    // ... باقي الكود بتاع الـ DB ومقارنة الـ Bcrypt
+    // 2. التحقق من وجود الحساب
+    if (!user) throw new UnauthorizedException('Account not found');
 
-    const user = await this.userModel
-      .findById(payload.sub)
-      .select('+currentAccessToken') // نكتفي باللي محتاجينه
-      .exec();
+    // 3. التحقق من وجود جلسة (Session)
+    if (!user.currentAccessToken) {
+      throw new UnauthorizedException('No active session, please login again');
+    }
 
-    // التحقق بالـ Bcrypt
+    // 4. المقارنة بـ Bcrypt (تأكد إنك مخزن الـ Hash فعلاً في الـ Login)
     const isTokenValid = await bcrypt.compare(
       rawToken,
       user.currentAccessToken,
     );
 
     if (!isTokenValid) {
-      throw new UnauthorizedException('Session expired');
+      throw new UnauthorizedException('Session expired or invalidated');
     }
 
+    // 5. رجع البيانات اللي هتحتاجها في الـ Req.user
     return {
       userId: user._id,
       email: user.email,
       role: user.role,
-      // الـ currentAccessToken هنا هيكون الـ Hash اللي في القاعدة
-      accessTokenHash: user.currentAccessToken,
     };
   }
 }
