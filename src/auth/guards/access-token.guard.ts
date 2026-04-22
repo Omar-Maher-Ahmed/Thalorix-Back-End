@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/users/schema/user.schema';
 import { Admin } from 'src/admin/schema/admin.schema';
+import * as bcrypt from 'bcrypt';
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
   constructor(
@@ -48,10 +49,22 @@ export class AccessTokenGuard implements CanActivate {
       if (!account) {
         throw new UnauthorizedException('User account not found');
       }
+    }
 
-      if (!account.currentAccessToken || account.currentAccessToken !== token) {
-        throw new UnauthorizedException('Session invalid, please login again');
-      }
+    if (!account.currentAccessToken) {
+      throw new UnauthorizedException('Session invalid, please login again');
+    }
+
+    const isTokenValid = await bcrypt.compare(
+      token,
+      account.currentAccessToken,
+    );
+
+    if (!isTokenValid) {
+      console.log(
+        '❌ Token mismatch: Provided token does not match hashed token in DB',
+      );
+      throw new UnauthorizedException('Session invalid, please login again');
     }
 
     if (account.isBlocked || account.isDeleted) {

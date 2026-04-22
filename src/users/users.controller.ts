@@ -1,17 +1,18 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from '../auth/dto';
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { AccessTokenGuard } from 'src/auth/guards/access-token.guard';
+import { QueryUserDto } from './dto/query-user.dto';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -19,8 +20,8 @@ export class UsersController {
   // ================= Find All =================
   @UseGuards(JwtAuthGuard)
   @Get('')
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query() query: QueryUserDto) {
+    return this.usersService.findAll(query);
   }
 
   // ================= Find One =================
@@ -38,7 +39,7 @@ export class UsersController {
   }
 
   // ================= Remove =================
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(JwtAuthGuard, AccessTokenGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
