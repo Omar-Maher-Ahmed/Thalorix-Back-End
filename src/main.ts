@@ -12,6 +12,12 @@ import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  app.enableCors({
+    origin: true, // Allow all origins (or specify your frontend URL)
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  });
   app.use(
     express.json({
       verify: (req: any, res, buf) => {
