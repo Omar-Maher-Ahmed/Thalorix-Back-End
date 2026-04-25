@@ -320,13 +320,13 @@ export class AuthService {
       role: 'user',
     });
 
-    await this.otpService.createOtp(OtpType.EMAIL_VERIFICATION, {
+    const otp = await this.otpService.createOtp(OtpType.EMAIL_VERIFICATION, {
       userId: newUser._id,
       email: dto.email,
       name: dto.name,
     });
 
-    return { message: 'User registered successfully' };
+    return { message: 'User registered successfully', otp };
   }
 
   // ================= Register Mobile =================
@@ -375,13 +375,13 @@ export class AuthService {
       role: 'user',
     });
 
-    await this.otpService.createOtp(OtpType.PHONE_VERIFICATION, {
+    const otp = await this.otpService.createOtp(OtpType.PHONE_VERIFICATION, {
       userId: newUser._id,
       email: dto.email,
       name: dto.name,
     });
 
-    return { message: 'User registered successfully' };
+    return { message: 'User registered successfully', otp };
   }
 
   // ================= Forgot Password =================
