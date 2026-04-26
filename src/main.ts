@@ -56,16 +56,20 @@ async function bootstrap() {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
 
-        // if Internal Server Error
-        if (exception.status === 500 || !exception.status) {
-          return response.status(400).json({
-            statusCode: 400,
-            message: 'Invalid input format',
-            error: 'Bad Request',
+        // Only mask true internal server errors (no status or status 500)
+        // All HTTP exceptions (including 400 validation errors) pass through with their real response
+        const status = exception.status ?? exception.statusCode;
+
+        if (!status || status === 500) {
+          return response.status(500).json({
+            statusCode: 500,
+            message: 'Internal server error',
+            error: 'Internal Server Error',
           });
         }
 
-        response.status(exception.status).json(exception.response);
+        // Pass through the actual HTTP exception response (preserves ValidationPipe error details)
+        response.status(status).json(exception.response);
       }
     })(),
   );

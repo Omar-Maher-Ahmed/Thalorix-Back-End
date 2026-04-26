@@ -1,9 +1,11 @@
-import { IsMongoId, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTemplateDto {
     @ApiProperty({ description: 'The name of the template', example: 'E-commerce Theme' })
     @IsString()
+    @IsNotEmpty()
     name: string;
 
     @ApiPropertyOptional({ description: 'Description of the template' })
@@ -12,6 +14,7 @@ export class CreateTemplateDto {
     description?: string;
 
     @ApiProperty({ description: 'The price of the template', example: 29.99 })
+    @Type(() => Number)
     @IsNumber()
     price: number;
 
