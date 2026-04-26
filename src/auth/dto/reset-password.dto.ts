@@ -18,6 +18,7 @@ export class ResetPasswordDto {
   @Length(6, 6, { message: 'Code must be exactly 6 digits' })
   code: string;
 
+  @ApiProperty({ description: 'The new password for the user', example: 'StrongP@ssw0rd', minLength: 8 })
   @IsString({ message: 'Password must be a string' })
   @MinLength(8, { message: 'Password must be at least 8 characters' })
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/, {
