@@ -168,19 +168,3 @@ export class MobileSignUpDto {
 
 
 }
-
-import { ValidateIf } from 'class-validator';
-
-export class ForgotPasswordDto {
-    @ApiPropertyOptional({ description: 'The email address of the user', example: 'user@example.com' })
-    @ValidateIf((o) => !o.phone)
-    @IsEmail({}, { message: 'Invalid email format' })
-    @IsNotEmpty({ message: 'Email is required when phone is not provided' })
-    email?: string;
-
-    @ApiPropertyOptional({ description: 'The phone number of the user', example: '+1234567890' })
-    @ValidateIf((o) => !o.email)
-    @IsString()
-    @IsNotEmpty({ message: 'Phone is required when email is not provided' })
-    phone?: string;
-}

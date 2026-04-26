@@ -1,52 +1,33 @@
-import { IsEmail, IsNotEmpty, IsString, IsUUID, MinLength } from "class-validator";
-import { Match } from "../decorators/match.decorator";
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsString } from 'class-validator';
+import { ValidateIf } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class PanelForgotPasswordDto {
+/**
+ * DTO for Step 1 of the forgot-password flow.
+ *
+ * The user provides either their email OR phone number.
+ * The service will look up the account and send a PASSWORD_RESET OTP.
+ *
+ * Used by: POST /auth/forgot-password
+ */
+export class ForgotPasswordDto {
+  @ApiPropertyOptional({
+    description:
+      'Email address of the account. Required when phone is not provided.',
+    example: 'user@example.com',
+    required: false,
+  })
+  @ValidateIf((o) => !o.phone)
+  @IsEmail({}, { message: 'Invalid email format' })
+  email?: string;
 
-    @ApiProperty({ description: 'The email address of the user', example: 'user@example.com' })
-    @IsEmail()
-    email: string;
-}
-
-export class PanelResetPasswordDTO {
-    @ApiProperty({ description: 'The token for resetting password' })
-    @IsString()
-    @IsNotEmpty({ message: "Token is required" })
-    token: string;
-
-    @ApiProperty({ description: 'The new password', example: 'StrongP@ssw0rd', minLength: 6 })
-    @IsString()
-    @IsNotEmpty({ message: "Password is required" })
-    @MinLength(6, { message: "Password must be at least 6 characters" })
-    password: string;
-
-    @ApiProperty({ description: 'The confirmation of the new password', example: 'StrongP@ssw0rd' })
-    @IsString()
-    @IsNotEmpty({ message: "Confirm password is required" })
-    @Match("password", { message: "Confirm password must match password" })
-    cPassword: string;
-}
-
-export class MobileForgotPasswordDto {
-    @ApiProperty({ description: 'The contact number of the user' })
-    @IsString()
-    @IsNotEmpty()
-    contact_number: string;
-
-    @ApiProperty({ description: 'The vendor ID' })
-    @IsUUID()
-    vendorId: string;
-}
-
-export class MobileForgotPasswordVDto {
-    @ApiProperty({ description: 'The patient ID' })
-    @IsUUID()
-    patientId: string;
-}
-
-export class MobileForgotPasswordCDto {
-    @ApiProperty({ description: 'The patient ID' })
-    @IsUUID()
-    patientId: string;
+  @ApiPropertyOptional({
+    description:
+      'Phone number of the account. Required when email is not provided.',
+    example: '+1234567890',
+    required: false,
+  })
+  @ValidateIf((o) => !o.email)
+  @IsString({ message: 'Phone number must be a string' })
+  phone?: string;
 }
