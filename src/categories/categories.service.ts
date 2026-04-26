@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -21,9 +22,10 @@ export class CategoriesService {
   // ✅ CREATE
   async create(dto: CreateCategoryDto) {
     const slug = slugify(dto.name, { lower: true, strict: true });
+    const normalizedName = dto.name.trim().toLowerCase();
 
     const exists = await this.categoryModel.findOne({
-      slug,
+      normalizedName,
       marketplaceId: dto.marketplaceId,
     });
 
@@ -31,10 +33,18 @@ export class CategoriesService {
       throw new ConflictException('Category already exists');
     }
 
-    return this.categoryModel.create({
-      ...dto,
-      slug,
-    });
+    try {
+      return await this.categoryModel.create({
+        ...dto,
+        slug,
+        normalizedName,
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        throw new BadRequestException('Name already exists');
+      }
+      throw err;
+    }
   }
 
   // ✅ GET ALL (pagination + search)
@@ -94,19 +104,27 @@ export class CategoriesService {
         lower: true,
         strict: true,
       });
+      updateData.normalizedName = dto.name.trim().toLowerCase();
     }
 
-    const category = await this.categoryModel.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true },
-    );
+    try {
+      const category = await this.categoryModel.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true },
+      );
 
-    if (!category) {
-      throw new NotFoundException('Category not found');
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+
+      return category;
+    } catch (err) {
+      if (err?.code === 11000) {
+        throw new BadRequestException('Name already exists');
+      }
+      throw err;
     }
-
-    return category;
   }
 
   // ✅ DELETE

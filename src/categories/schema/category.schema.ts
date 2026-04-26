@@ -18,6 +18,15 @@ export class Category {
   @Prop({
     required: true,
     lowercase: true,
+    trim: true,
+    unique: true,
+    index: true,
+  })
+  normalizedName: string;
+
+  @Prop({
+    required: true,
+    lowercase: true,
     unique: true,
     index: true,
   })
