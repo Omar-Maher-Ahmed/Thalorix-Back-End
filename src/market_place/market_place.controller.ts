@@ -10,7 +10,7 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { MarketPlaceService } from './market_place.service';
 import { CreateMarketPlaceDto } from './dto/create-market_place.dto';
@@ -44,7 +44,13 @@ export class MarketPlaceController {
   }
 
   // ✅ Public - Find All with Query
-  @ApiOperation({ summary: 'Get all marketplace items', description: 'Retrieves all marketplace items (Public)' })
+  @ApiOperation({ summary: 'Get all marketplace items', description: 'Retrieves all marketplace items with optional filtering and pagination (Public)' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number (1-indexed)', type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, description: 'Number of items per page', type: Number, example: 10 })
+  @ApiQuery({ name: 'keyword', required: false, description: 'Search keyword to filter items by name or description', type: String, example: 'web template' })
+  @ApiQuery({ name: 'category', required: false, description: 'Filter by category MongoDB ObjectId', type: String, example: '60d5ecb8b392d7001f8e8e31' })
+  @ApiQuery({ name: 'minPrice', required: false, description: 'Minimum price filter', type: Number, example: 0 })
+  @ApiQuery({ name: 'maxPrice', required: false, description: 'Maximum price filter', type: Number, example: 500 })
   @ApiResponse({ status: 200, description: 'Marketplace items retrieved successfully' })
   @Get()
   findAll(@Query() query: any) {

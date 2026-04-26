@@ -22,6 +22,8 @@ export class UsersController {
   // ================= Find All =================
   @ApiOperation({ summary: 'Get all users', description: 'Retrieves a paginated list of all users' })
   @ApiBearerAuth()
+  @ApiQuery({ name: 'limit', required: false, description: 'Number of users per page', type: Number, example: 10 })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number (1-indexed)', type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @UseGuards(JwtAuthGuard)

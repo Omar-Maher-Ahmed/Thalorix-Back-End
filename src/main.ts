@@ -73,16 +73,33 @@ async function bootstrap() {
   // 2. setup Swagger
   const config = new DocumentBuilder()
     .setTitle('Thalorix API Documentation')
-    .setDescription('The API description for my project')
+    .setDescription(
+      'Complete API documentation for the Thalorix platform. ' +
+      'Use the Authorize button to enter your JWT Bearer token before calling protected endpoints.',
+    )
     .setVersion('1.0')
+    // Named scheme used by Orders controller (@ApiBearerAuth('access-token'))
     .addBearerAuth(
       {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter your JWT access token (named scheme: access-token)',
         in: 'header',
       },
       'access-token',
+    )
+    // Default scheme used by Auth, Chat, Community, Users, Marketplace, Admin controllers
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter your JWT access token',
+        in: 'header',
+      },
     )
     .build();
 
