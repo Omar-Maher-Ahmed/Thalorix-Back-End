@@ -13,10 +13,16 @@ import {
   MobileLoginDto,
   WebsiteLoginDto,
   ForgotPasswordDto,
-  VerifyOtpDto,
+  // VerifyOtpDto,
   ResetPasswordDto,
 } from '../auth/dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -25,7 +31,10 @@ import { AuthGuard } from '@nestjs/passport';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @ApiOperation({ summary: 'Website user registration', description: 'Registers a new user from the website' })
+  @ApiOperation({
+    summary: 'Website user registration',
+    description: 'Registers a new user from the website',
+  })
   @ApiBody({ type: WebsiteSignUpDto })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
@@ -51,8 +60,10 @@ export class AuthController {
     return this.authService.websiteRegister(websiteSignUp);
   }
 
-
-  @ApiOperation({ summary: 'Mobile user registration', description: 'Registers a new user from a mobile device' })
+  @ApiOperation({
+    summary: 'Mobile user registration',
+    description: 'Registers a new user from a mobile device',
+  })
   @ApiBody({ type: MobileSignUpDto })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
@@ -62,8 +73,10 @@ export class AuthController {
     return this.authService.mobileRegister(mobileSignUp);
   }
 
-
-  @ApiOperation({ summary: 'Website user login', description: 'Authenticates a website user and returns a token' })
+  @ApiOperation({
+    summary: 'Website user login',
+    description: 'Authenticates a website user and returns a token',
+  })
   @ApiBody({ type: WebsiteLoginDto })
   @ApiResponse({ status: 201, description: 'User logged in successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
@@ -73,7 +86,10 @@ export class AuthController {
     return this.authService.websiteLogin(websiteLogin);
   }
 
-  @ApiOperation({ summary: 'Mobile user login', description: 'Authenticates a mobile user and returns a token' })
+  @ApiOperation({
+    summary: 'Mobile user login',
+    description: 'Authenticates a mobile user and returns a token',
+  })
   @ApiBody({ type: MobileLoginDto })
   @ApiResponse({ status: 201, description: 'User logged in successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
@@ -83,8 +99,16 @@ export class AuthController {
     return this.authService.mobileLogin(mobileLogin);
   }
 
-  @ApiOperation({ summary: 'Refresh token', description: 'Refreshes the authentication token' })
-  @ApiBody({ schema: { type: 'object', properties: { refreshToken: { type: 'string' } } } })
+  @ApiOperation({
+    summary: 'Refresh token',
+    description: 'Refreshes the authentication token',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { refreshToken: { type: 'string' } },
+    },
+  })
   @ApiResponse({ status: 201, description: 'Token refreshed successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @Post('refresh')
@@ -93,7 +117,10 @@ export class AuthController {
     return this.authService.refreshAccessToken(refreshToken);
   }
 
-  @ApiOperation({ summary: 'User logout', description: 'Logs out the current user' })
+  @ApiOperation({
+    summary: 'User logout',
+    description: 'Logs out the current user',
+  })
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: 'User logged out successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -104,9 +131,15 @@ export class AuthController {
     return this.authService.logout(req.user.sub);
   }
 
-  @ApiOperation({ summary: 'Forgot password', description: 'Initiates the forgot password process' })
+  @ApiOperation({
+    summary: 'Forgot password',
+    description: 'Initiates the forgot password process',
+  })
   @ApiBody({ type: ForgotPasswordDto })
-  @ApiResponse({ status: 201, description: 'Forgot password process initiated successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Forgot password process initiated successfully',
+  })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
@@ -114,17 +147,20 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
-  @ApiOperation({ summary: 'Verify OTP', description: 'Verifies the OTP sent to the user' })
-  @ApiBody({ type: VerifyOtpDto })
-  @ApiResponse({ status: 201, description: 'OTP verified successfully' })
-  @ApiResponse({ status: 400, description: 'Bad Request' })
-  @Post('verify-otp')
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    return this.authService.verifyOtp(verifyOtpDto);
-  }
+  // @ApiOperation({ summary: 'Verify OTP', description: 'Verifies the OTP sent to the user' })
+  // @ApiBody({ type: VerifyOtpDto })
+  // @ApiResponse({ status: 201, description: 'OTP verified successfully' })
+  // @ApiResponse({ status: 400, description: 'Bad Request' })
+  // @Post('verify-otp')
+  // @Throttle({ default: { limit: 5, ttl: 60000 } })
+  // verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+  //   return this.authService.verifyOtp(verifyOtpDto);
+  // }
 
-  @ApiOperation({ summary: 'Reset password', description: 'Resets the user password using OTP' })
+  @ApiOperation({
+    summary: 'Reset password',
+    description: 'Resets the user password using OTP',
+  })
   @ApiBody({ type: ResetPasswordDto })
   @ApiResponse({ status: 201, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
