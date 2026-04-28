@@ -4,9 +4,12 @@ import { Template, TemplateSchema } from './schema/template.schema';
 import { Category, CategorySchema } from 'src/categories/schema/category.schema';
 import { TemplateService } from './templates.service';
 import { TemplateController } from './templates.controller';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
+    // ✅ AuthModule provides JwtStrategy + AccessTokenGuard needed by JwtAuthGuard
+    AuthModule,
     MongooseModule.forFeature([
       { name: Template.name, schema: TemplateSchema },
       { name: Category.name, schema: CategorySchema },

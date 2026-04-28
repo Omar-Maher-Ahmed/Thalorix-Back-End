@@ -8,7 +8,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Template, TemplateDocument } from './schema/template.schema';
 import { CreateTemplateDto } from './dto/create-template.dto';
-import { Category, CategoryDocument } from 'src/categories/schema/category.schema';
+import {
+  Category,
+  CategoryDocument,
+} from 'src/categories/schema/category.schema';
 
 @Injectable()
 export class TemplateService {
@@ -20,22 +23,24 @@ export class TemplateService {
     private categoryModel: Model<CategoryDocument>,
   ) {}
 
+  // ── Create ─────────────────────────────────────────────────────────────────
+
   async create(createDto: CreateTemplateDto, user: any) {
     if (user.role !== 'seller') {
       throw new ForbiddenException('Only sellers can create templates');
     }
 
-    const category = await this.categoryModel.findById(
-      createDto.categoryId,
-    );
+    const category = await this.categoryModel.findById(createDto.categoryId);
 
     if (!category) {
       throw new NotFoundException('Category not found');
     }
 
-    if (category.marketplaceId.toString() !== user._id.toString()) {
+    // ✅ FIX: verify the category belongs to the marketplace the seller specified,
+    //         NOT compared against user._id (which is the user's own ID, not marketplace ID).
+    if (category.marketplaceId.toString() !== createDto.marketplaceId) {
       throw new ForbiddenException(
-        'You cannot use a category that does not belong to you',
+        'The selected category does not belong to the specified marketplace',
       );
     }
 
@@ -47,15 +52,27 @@ export class TemplateService {
       category: createDto.categoryId,
     });
 
+    // ✅ FIX: populate 'marketplaceId' (the actual ref field on Category schema),
+    //         not the non-existent 'marketplace' alias.
     return template.populate([
       { path: 'seller', select: '-password' },
-      { path: 'category', populate: { path: 'marketplace' } },
+      {
+        path: 'category',
+        populate: { path: 'marketplaceId' },
+      },
     ]);
   }
 
+  // ── Find All By Marketplace ─────────────────────────────────────────────────
+
   async findAllByMarketplace(marketplaceId: string) {
+    // Guard: validate the ID before querying
+    if (!Types.ObjectId.isValid(marketplaceId)) {
+      throw new BadRequestException('Invalid marketplace ID');
+    }
+
     const categories = await this.categoryModel.find({
-      marketplace: marketplaceId,
+      marketplaceId: new Types.ObjectId(marketplaceId),
     });
 
     const categoryIds = categories.map((c) => c._id);
@@ -68,9 +85,12 @@ export class TemplateService {
       .populate('seller', '-password')
       .populate({
         path: 'category',
-        populate: { path: 'marketplace' },
+        // ✅ FIX: correct ref field name is 'marketplaceId', not 'marketplace'
+        populate: { path: 'marketplaceId' },
       });
   }
+
+  // ── Update ─────────────────────────────────────────────────────────────────
 
   async update(id: string, dto: CreateTemplateDto, user: any) {
     const template = await this.templateModel.findById(id);
@@ -92,9 +112,14 @@ export class TemplateService {
         throw new NotFoundException('Category not found');
       }
 
-      if (category.marketplaceId.toString() !== user._id.toString()) {
+      // ✅ FIX: compare against dto.marketplaceId (the marketplace the seller owns),
+      //         not against user._id.
+      if (
+        dto.marketplaceId &&
+        category.marketplaceId.toString() !== dto.marketplaceId
+      ) {
         throw new ForbiddenException(
-          'You cannot move template to another marketplace category',
+          'You cannot move a template to a category from a different marketplace',
         );
       }
 
@@ -107,11 +132,17 @@ export class TemplateService {
 
     await template.save();
 
+    // ✅ FIX: correct populate field name
     return template.populate([
       { path: 'seller', select: '-password' },
-      { path: 'category', populate: { path: 'marketplace' } },
+      {
+        path: 'category',
+        populate: { path: 'marketplaceId' },
+      },
     ]);
   }
+
+  // ── Remove (Soft Delete) ────────────────────────────────────────────────────
 
   async remove(id: string, user: any) {
     const template = await this.templateModel.findById(id);
