@@ -8,6 +8,7 @@ import { User } from 'src/users/schema/user.schema';
 import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
 import { Admin } from 'src/admin/schema/admin.schema';
+import { Seller } from 'src/sellers/schema/seller.schema';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -15,6 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     configService: ConfigService,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Admin.name) private adminModel: Model<Admin>,
+    @InjectModel(Seller.name) private sellerModel: Model<Seller>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -149,6 +151,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // 1. اختار الموديل الصح بناءً على الـ Role
     if (payload.role === 'admin') {
       user = await this.adminModel
+        .findById(payload.sub)
+        .select('+currentAccessToken')
+        .exec();
+    } else if (payload.role === 'seller') {
+      user = await this.sellerModel
         .findById(payload.sub)
         .select('+currentAccessToken')
         .exec();

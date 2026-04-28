@@ -51,6 +51,7 @@ export class AuthController {
     return this.authService.websiteRegister(websiteSignUp);
   }
 
+
   @ApiOperation({ summary: 'Mobile user registration', description: 'Registers a new user from a mobile device' })
   @ApiBody({ type: MobileSignUpDto })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
@@ -60,6 +61,7 @@ export class AuthController {
   mobileRegister(@Body() mobileSignUp: MobileSignUpDto) {
     return this.authService.mobileRegister(mobileSignUp);
   }
+
 
   @ApiOperation({ summary: 'Website user login', description: 'Authenticates a website user and returns a token' })
   @ApiBody({ type: WebsiteLoginDto })

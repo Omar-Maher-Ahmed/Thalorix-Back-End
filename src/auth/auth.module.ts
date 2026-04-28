@@ -11,12 +11,15 @@ import { AuthService } from './auth.service';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { OtpModule } from '../otp/otp.module';
 
+import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
+
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Admin.name, schema: AdminSchema },
+      { name: Seller.name, schema: SellerSchema },
     ]),
     OtpModule,
 

@@ -8,6 +8,7 @@ import { JwtStrategy } from '../auth/token/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Admin, AdminSchema } from 'src/admin/schema/admin.schema';
+import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { Admin, AdminSchema } from 'src/admin/schema/admin.schema';
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Admin.name, schema: AdminSchema },
+      { name: Seller.name, schema: SellerSchema },
     ]),
 
     JwtModule.registerAsync({

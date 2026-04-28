@@ -8,6 +8,7 @@ import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { Admin, AdminSchema } from './schema/admin.schema';
 import { User, UserSchema } from '../users/schema/user.schema';
+import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { User, UserSchema } from '../users/schema/user.schema';
     MongooseModule.forFeature([
       { name: Admin.name, schema: AdminSchema },
       { name: User.name, schema: UserSchema },
+      { name: Seller.name, schema: SellerSchema },
     ]),
 
     JwtModule.registerAsync({

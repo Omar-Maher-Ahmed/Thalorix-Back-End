@@ -17,6 +17,8 @@ import { OtpModule } from './otp/otp.module';
 import { MailerModule } from './services/mailer/mailer.module';
 import { AdminModule } from './admin/admin.module';
 import { CommunityModule } from './community/community.module';
+import { SellersModule } from './sellers/sellers.module';
+
 @Module({
   imports: [
     ThrottlerModule.forRoot([
@@ -40,6 +42,7 @@ import { CommunityModule } from './community/community.module';
     AdminModule,
     AuthModule,
     UsersModule,
+    SellersModule,
     MarketPlaceModule,
     TemplatesModule,
     ChatModule,
