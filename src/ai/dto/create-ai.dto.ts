@@ -1,15 +1,37 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  MaxLength,
+  IsMongoId,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateAiDto {
-  @ApiPropertyOptional({
-    description: 'The prompt or query to send to the AI',
-    example: 'Summarize the benefits of solar energy in 3 bullet points',
+export class CreateProjectDto {
+  @ApiProperty({
+    description: 'Natural-language description of the project to generate',
+    example: 'Build a full-stack todo app with React 18+ Vite and a Node.js API',
     maxLength: 4000,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4000)
+  prompt: string;
+
+  @ApiPropertyOptional({
+    description: 'Target technology stack',
+    example: 'React 18+ Vite',
   })
   @IsOptional()
   @IsString()
-  @MaxLength(4000)
-  prompt?: string;
-}
+  @MaxLength(200)
+  stack?: string;
 
+  @ApiPropertyOptional({
+    description: 'Thalorix user ID to associate this project with',
+    example: '665f9c3b1e4b2a001f000001',
+  })
+  @IsOptional()
+  @IsMongoId()
+  userId?: string;
+}
