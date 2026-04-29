@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { SellersService } from './sellers.service';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
-// import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
+import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
 
 @ApiTags('Sellers')
 @Controller('seller')
@@ -45,23 +45,35 @@ export class SellersController {
     return await this.sellersService.loginSeller(loginSellerDto);
   }
 
-  // @ApiOperation({ summary: 'Verify OTP', description: 'Verifies the OTP sent to the seller to activate the account.' })
-  // @ApiBody({ type: VerifyOtpDto })
-  // @ApiResponse({ status: 201, description: 'Account verified successfully.' })
-  // @ApiResponse({ status: 400, description: 'Bad Request / Invalid or expired OTP' })
-  // @ApiResponse({ status: 404, description: 'Seller not found' })
-  // @Post('verify-otp')
-  // async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-  //   return await this.sellersService.verifyOtp(verifyOtpDto);
-  // }
+  @ApiOperation({
+    summary: 'Verify OTP',
+    description: 'Verifies the OTP sent to the seller to activate the account.',
+  })
+  @ApiBody({ type: VerifyOtpDto })
+  @ApiResponse({ status: 201, description: 'Account verified successfully.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request / Invalid or expired OTP',
+  })
+  @ApiResponse({ status: 404, description: 'Seller not found' })
+  @Post('verify-otp')
+  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    return await this.sellersService.verifyOtp(verifyOtpDto);
+  }
 
-  // @ApiOperation({ summary: 'Resend OTP', description: 'Generates and sends a new OTP to the seller.' })
-  // @ApiBody({ type: ResendOtpDto })
-  // @ApiResponse({ status: 201, description: 'New OTP sent.' })
-  // @ApiResponse({ status: 400, description: 'Bad Request / Account already verified' })
-  // @ApiResponse({ status: 404, description: 'Seller not found' })
-  // @Post('resend-otp')
-  // async resendOtp(@Body() resendOtpDto: ResendOtpDto) {
-  //   return await this.sellersService.resendOtp(resendOtpDto);
-  // }
+  @ApiOperation({
+    summary: 'Resend OTP',
+    description: 'Generates and sends a new OTP to the seller.',
+  })
+  @ApiBody({ type: ResendOtpDto })
+  @ApiResponse({ status: 201, description: 'New OTP sent.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request / Account already verified',
+  })
+  @ApiResponse({ status: 404, description: 'Seller not found' })
+  @Post('resend-otp')
+  async resendOtp(@Body() resendOtpDto: ResendOtpDto) {
+    return await this.sellersService.resendOtp(resendOtpDto);
+  }
 }

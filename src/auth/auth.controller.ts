@@ -13,7 +13,7 @@ import {
   MobileLoginDto,
   WebsiteLoginDto,
   ForgotPasswordDto,
-  // VerifyOtpDto,
+  VerifyOtpDto,
   ResetPasswordDto,
 } from '../auth/dto';
 import {
@@ -147,15 +147,18 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
-  // @ApiOperation({ summary: 'Verify OTP', description: 'Verifies the OTP sent to the user' })
-  // @ApiBody({ type: VerifyOtpDto })
-  // @ApiResponse({ status: 201, description: 'OTP verified successfully' })
-  // @ApiResponse({ status: 400, description: 'Bad Request' })
-  // @Post('verify-otp')
-  // @Throttle({ default: { limit: 5, ttl: 60000 } })
-  // verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-  //   return this.authService.verifyOtp(verifyOtpDto);
-  // }
+  @ApiOperation({
+    summary: 'Verify OTP',
+    description: 'Verifies the OTP sent to the user',
+  })
+  @ApiBody({ type: VerifyOtpDto })
+  @ApiResponse({ status: 201, description: 'OTP verified successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @Post('verify-otp')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    return this.authService.verifyOtp(verifyOtpDto);
+  }
 
   @ApiOperation({
     summary: 'Reset password',

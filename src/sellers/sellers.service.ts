@@ -13,7 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Seller, SellerDocument } from './schema/seller.schema';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
-// import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
+import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
 
 @Injectable()
 export class SellersService {
@@ -86,58 +86,64 @@ export class SellersService {
   }
 
   // ================= Verify OTP =================
-  // async verifyOtp(dto: VerifyOtpDto) {
-  //   const seller = await this.sellerModel
-  //     .findOne({ email: dto.email })
-  //     .select('+otp +otpExpiresAt');
+  async verifyOtp(dto: VerifyOtpDto) {
+    const seller = await this.sellerModel
+      .findOne({ email: dto.email })
+      .select('+otp +otpExpiresAt');
 
-  //   if (!seller) {
-  //     throw new NotFoundException('Seller not found');
-  //   }
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
 
-  //   if (seller.isVerified) {
-  //     throw new BadRequestException('Seller is already verified');
-  //   }
+    if (seller.isVerified) {
+      throw new BadRequestException('Seller is already verified');
+    }
 
-  //   if (!seller.otp || !seller.otpExpiresAt) {
-  //     throw new BadRequestException('No OTP found for this seller. Please request a new one.');
-  //   }
+    if (!seller.otp || !seller.otpExpiresAt) {
+      throw new BadRequestException(
+        'No OTP found for this seller. Please request a new one.',
+      );
+    }
 
-  //   if (new Date() > seller.otpExpiresAt) {
-  //     throw new BadRequestException('OTP has expired. Please request a new one.');
-  //   }
+    if (new Date() > seller.otpExpiresAt) {
+      throw new BadRequestException(
+        'OTP has expired. Please request a new one.',
+      );
+    }
 
-  //   const isMatch = await bcrypt.compare(dto.code, seller.otp);
-  //   if (!isMatch) {
-  //     throw new BadRequestException('Invalid OTP code');
-  //   }
+    const isMatch = await bcrypt.compare(dto.code, seller.otp);
+    if (!isMatch) {
+      throw new BadRequestException('Invalid OTP code');
+    }
 
-  //   seller.isVerified = true;
-  //   seller.otp = undefined;
-  //   seller.otpExpiresAt = undefined;
-  //   await seller.save();
+    seller.isVerified = true;
+    seller.otp = undefined;
+    seller.otpExpiresAt = undefined;
+    await seller.save();
 
-  //   return { message: 'Seller verified successfully. You can now login.' };
-  // }
+    return { message: 'Seller verified successfully. You can now login.' };
+  }
 
   // ================= Resend OTP =================
-  // async resendOtp(dto: ResendOtpDto) {
-  //   const seller = await this.sellerModel.findOne({ email: dto.email }).select('+otp +otpExpiresAt');
+  async resendOtp(dto: ResendOtpDto) {
+    const seller = await this.sellerModel
+      .findOne({ email: dto.email })
+      .select('+otp +otpExpiresAt');
 
-  //   if (!seller) {
-  //     throw new NotFoundException('Seller not found');
-  //   }
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
 
-  //   if (seller.isVerified) {
-  //     throw new BadRequestException('Seller is already verified');
-  //   }
+    if (seller.isVerified) {
+      throw new BadRequestException('Seller is already verified');
+    }
 
-  //   const otp = await this.generateOtpForSeller(seller);
+    const otp = await this.generateOtpForSeller(seller);
 
-  //   return {
-  //     message: 'A new OTP has been sent to your email.',
-  //   };
-  // }
+    return {
+      message: 'A new OTP has been sent to your email.',
+    };
+  }
 
   // ================= Login Seller =================
   async loginSeller(dto: LoginSellerDto) {
