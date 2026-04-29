@@ -9,12 +9,14 @@ import {
   UseGuards,
   Req,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { MarketPlaceService } from './market_place.service';
 import { CreateMarketPlaceDto } from './dto/create-market_place.dto';
 import { UpdateMarketPlaceDto } from './dto/update-market_place.dto';
+import { QueryMarketPlaceDto } from './dto/query-market_place.dto';
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 
 
@@ -53,7 +55,7 @@ export class MarketPlaceController {
   @ApiQuery({ name: 'maxPrice', required: false, description: 'Maximum price filter', type: Number, example: 500 })
   @ApiResponse({ status: 200, description: 'Marketplace items retrieved successfully' })
   @Get()
-  findAll(@Query() query: any) {
+  findAll(@Query() query: QueryMarketPlaceDto) {
     return this.marketPlaceService.findAll(query);
   }
 
@@ -65,7 +67,7 @@ export class MarketPlaceController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     if (!Types.ObjectId.isValid(id)) {
-      throw new Error('Invalid ID');
+      throw new BadRequestException('Invalid marketplace ID');
     }
     return this.marketPlaceService.findOne(id);
   }
@@ -86,6 +88,9 @@ export class MarketPlaceController {
     @Body() updateMarketPlaceDto: UpdateMarketPlaceDto,
     @Req() req: any,
   ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid marketplace ID');
+    }
     const user = req.user as any;
     return this.marketPlaceService.update(
       id,
@@ -107,6 +112,9 @@ export class MarketPlaceController {
     @Param('id') id: string,
     @Req() req: any,
   ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid marketplace ID');
+    }
     const user = req.user as any;
     return this.marketPlaceService.remove(id, user._id);
   }

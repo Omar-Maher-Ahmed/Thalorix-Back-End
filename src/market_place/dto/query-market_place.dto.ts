@@ -35,6 +35,11 @@ export class QueryMarketPlaceDto {
   @IsMongoId()
   category?: string;
 
+  @ApiPropertyOptional({ description: 'Filter by category ID', example: '60d5ecb8b392d7001f8e8e31' })
+  @IsOptional()
+  @IsMongoId()
+  categoryId?: string;
+
   @ApiPropertyOptional({ description: 'Search keyword to filter items', example: 'template' })
   @IsOptional()
   @NotEquals('Null')

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 
@@ -14,6 +15,7 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { QueryCategoryDto } from './dto/query-category.dto';
+import { Types } from 'mongoose';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -37,6 +39,9 @@ export class CategoriesController {
   @ApiResponse({ status: 200, description: 'List of categories retrieved successfully' })
   @Get()
   findAll(@Query() query: QueryCategoryDto) {
+    if (query.marketplaceId && !Types.ObjectId.isValid(query.marketplaceId)) {
+      throw new BadRequestException('Invalid marketplace ID');
+    }
     return this.categoriesService.findAll(query);
   }
 
@@ -46,6 +51,9 @@ export class CategoriesController {
   @ApiResponse({ status: 404, description: 'Category not found' })
   @Get(':id')
   findOne(@Param('id') id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid category ID');
+    }
     return this.categoriesService.findOne(id);
   }
 
@@ -57,6 +65,9 @@ export class CategoriesController {
   @ApiResponse({ status: 404, description: 'Category not found' })
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid category ID');
+    }
     return this.categoriesService.update(id, dto);
   }
 
@@ -66,6 +77,9 @@ export class CategoriesController {
   @ApiResponse({ status: 404, description: 'Category not found' })
   @Delete(':id')
   remove(@Param('id') id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid category ID');
+    }
     return this.categoriesService.remove(id);
   }
 }

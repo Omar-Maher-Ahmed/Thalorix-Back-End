@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +21,7 @@ import {
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateService } from './templates.service';
+import { Types } from 'mongoose';
 
 @ApiTags('Templates')
 @Controller('templates')
@@ -52,6 +54,9 @@ export class TemplateController {
   @ApiResponse({ status: 200, description: 'Templates retrieved successfully' })
   @Get('marketplace/:id')
   findAllByMarketplace(@Param('id') id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid marketplace ID');
+    }
     return this.templateService.findAllByMarketplace(id);
   }
 
@@ -74,6 +79,9 @@ export class TemplateController {
     @Body() dto: CreateTemplateDto,
     @Req() req: any,
   ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid template ID');
+    }
     return this.templateService.update(id, dto, req.user);
   }
 
@@ -91,6 +99,9 @@ export class TemplateController {
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: any) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid template ID');
+    }
     return this.templateService.remove(id, req.user);
   }
 }

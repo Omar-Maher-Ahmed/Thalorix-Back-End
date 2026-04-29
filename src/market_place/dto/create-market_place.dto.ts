@@ -51,5 +51,10 @@ export class CreateMarketPlaceDto {
   @IsOptional()
   @IsMongoId()
   category?: string;
+
+  @ApiProperty({ description: 'The primary category ID for the item', example: '60d5ecb8b392d7001f8e8e31' })
+  @IsOptional()
+  @IsMongoId()
+  categoryId?: string;
 }
 

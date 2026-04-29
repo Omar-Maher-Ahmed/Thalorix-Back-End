@@ -3,43 +3,71 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import slugify from 'slugify';
+import { Types } from 'mongoose';
 
 import { Category } from './schema/category.schema';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { MarketPlace, MarketPlaceDocument } from '../market_place/schema/market_place.schema';
 
 @Injectable()
 export class CategoriesService {
+  private readonly logger = new Logger(CategoriesService.name);
+
   constructor(
     @InjectModel(Category.name)
     private readonly categoryModel: Model<Category>,
+    @InjectModel(MarketPlace.name)
+    private readonly marketPlaceModel: Model<MarketPlaceDocument>,
   ) {}
 
   // ✅ CREATE
   async create(dto: CreateCategoryDto) {
-    const slug = slugify(dto.name, { lower: true, strict: true });
-    const normalizedName = dto.name.trim().toLowerCase();
-
-    const exists = await this.categoryModel.findOne({
-      normalizedName,
-      marketplaceId: dto.marketplaceId,
-    });
-
-    if (exists) {
-      throw new ConflictException('Category already exists');
-    }
-
     try {
+      const slug = slugify(dto.name, { lower: true, strict: true });
+      const normalizedName = dto.name.trim().toLowerCase();
+
+      // 1. ObjectId Validation
+      if (!Types.ObjectId.isValid(dto.marketplaceId)) {
+        throw new BadRequestException('Invalid marketplaceId');
+      }
+      if (dto.parentId && !Types.ObjectId.isValid(dto.parentId)) {
+        throw new BadRequestException('Invalid parentId');
+      }
+
+      // 2. Existence Check (Marketplace)
+      const marketplace = await this.marketPlaceModel.findById(dto.marketplaceId);
+      if (!marketplace) {
+        throw new NotFoundException('Marketplace not found');
+      }
+
+      // 3. Duplicate Check
+      const exists = await this.categoryModel.findOne({
+        normalizedName,
+        marketplaceId: new Types.ObjectId(dto.marketplaceId),
+      });
+
+      if (exists) {
+        throw new ConflictException('Category already exists in this marketplace');
+      }
+
       return await this.categoryModel.create({
         ...dto,
+        marketplaceId: new Types.ObjectId(dto.marketplaceId),
+        parentId: dto.parentId ? new Types.ObjectId(dto.parentId) : null,
         slug,
         normalizedName,
       });
     } catch (err) {
+      this.logger.error(`Category Create Error: ${err.message}`, err.stack);
+      if (err instanceof ConflictException || err instanceof BadRequestException || err instanceof NotFoundException) {
+        throw err;
+      }
       if (err?.code === 11000) {
         throw new BadRequestException('Name already exists');
       }
@@ -60,7 +88,10 @@ export class CategoriesService {
     }
 
     if (query.marketplaceId) {
-      filter.marketplaceId = query.marketplaceId;
+      if (!Types.ObjectId.isValid(query.marketplaceId)) {
+        throw new BadRequestException('Invalid marketplaceId in query');
+      }
+      filter.marketplaceId = new Types.ObjectId(query.marketplaceId);
     }
 
     const [data, total] = await Promise.all([
@@ -84,6 +115,10 @@ export class CategoriesService {
 
   // ✅ GET ONE
   async findOne(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid category ID');
+    }
+
     const category = await this.categoryModel
       .findById(id)
       .populate('parentId', 'name');
@@ -97,17 +132,28 @@ export class CategoriesService {
 
   // ✅ UPDATE
   async update(id: string, dto: UpdateCategoryDto) {
-    const updateData: any = { ...dto };
-
-    if (dto.name) {
-      updateData.slug = slugify(dto.name, {
-        lower: true,
-        strict: true,
-      });
-      updateData.normalizedName = dto.name.trim().toLowerCase();
-    }
-
     try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid category ID');
+      }
+
+      const updateData: any = { ...dto };
+
+      if (dto.name) {
+        updateData.slug = slugify(dto.name, {
+          lower: true,
+          strict: true,
+        });
+        updateData.normalizedName = dto.name.trim().toLowerCase();
+      }
+
+      if (dto.parentId) {
+        if (!Types.ObjectId.isValid(dto.parentId)) {
+          throw new BadRequestException('Invalid parentId');
+        }
+        updateData.parentId = new Types.ObjectId(dto.parentId);
+      }
+
       const category = await this.categoryModel.findByIdAndUpdate(
         id,
         updateData,
@@ -120,6 +166,10 @@ export class CategoriesService {
 
       return category;
     } catch (err) {
+      this.logger.error(`Category Update Error: ${err.message}`, err.stack);
+      if (err instanceof NotFoundException || err instanceof BadRequestException) {
+        throw err;
+      }
       if (err?.code === 11000) {
         throw new BadRequestException('Name already exists');
       }
@@ -129,6 +179,10 @@ export class CategoriesService {
 
   // ✅ DELETE
   async remove(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid category ID');
+    }
+
     const category = await this.categoryModel.findByIdAndDelete(id);
 
     if (!category) {
