@@ -13,7 +13,6 @@ import { Types } from 'mongoose';
 import { Category } from './schema/category.schema';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { MarketPlace, MarketPlaceDocument } from '../market_place/schema/market_place.schema';
 
 @Injectable()
 export class CategoriesService {
@@ -22,8 +21,6 @@ export class CategoriesService {
   constructor(
     @InjectModel(Category.name)
     private readonly categoryModel: Model<Category>,
-    @InjectModel(MarketPlace.name)
-    private readonly marketPlaceModel: Model<MarketPlaceDocument>,
   ) {}
 
   // ✅ CREATE
@@ -33,32 +30,21 @@ export class CategoriesService {
       const normalizedName = dto.name.trim().toLowerCase();
 
       // 1. ObjectId Validation
-      if (!Types.ObjectId.isValid(dto.marketplaceId)) {
-        throw new BadRequestException('Invalid marketplaceId');
-      }
       if (dto.parentId && !Types.ObjectId.isValid(dto.parentId)) {
         throw new BadRequestException('Invalid parentId');
       }
 
-      // 2. Existence Check (Marketplace)
-      const marketplace = await this.marketPlaceModel.findById(dto.marketplaceId);
-      if (!marketplace) {
-        throw new NotFoundException('Marketplace not found');
-      }
-
-      // 3. Duplicate Check
+      // 2. Duplicate Check
       const exists = await this.categoryModel.findOne({
         normalizedName,
-        marketplaceId: new Types.ObjectId(dto.marketplaceId),
       });
 
       if (exists) {
-        throw new ConflictException('Category already exists in this marketplace');
+        throw new ConflictException('Category already exists');
       }
 
       return await this.categoryModel.create({
         ...dto,
-        marketplaceId: new Types.ObjectId(dto.marketplaceId),
         parentId: dto.parentId ? new Types.ObjectId(dto.parentId) : null,
         slug,
         normalizedName,
@@ -85,13 +71,6 @@ export class CategoriesService {
 
     if (query.keyword) {
       filter.name = { $regex: query.keyword, $options: 'i' };
-    }
-
-    if (query.marketplaceId) {
-      if (!Types.ObjectId.isValid(query.marketplaceId)) {
-        throw new BadRequestException('Invalid marketplaceId in query');
-      }
-      filter.marketplaceId = new Types.ObjectId(query.marketplaceId);
     }
 
     const [data, total] = await Promise.all([

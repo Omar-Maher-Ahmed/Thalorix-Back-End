@@ -9,6 +9,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Admin, AdminSchema } from 'src/admin/schema/admin.schema';
 import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
+import { Block, BlockSchema } from './schema/block.schema';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
       { name: User.name, schema: UserSchema },
       { name: Admin.name, schema: AdminSchema },
       { name: Seller.name, schema: SellerSchema },
+      { name: Block.name, schema: BlockSchema },
     ]),
 
     JwtModule.registerAsync({

@@ -14,6 +14,8 @@ import { Seller, SellerDocument } from './schema/seller.schema';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
 import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
+import { OtpService } from '../otp/otp.service';
+import { OtpType } from '../otp/schema/otp.schema';
 
 @Injectable()
 export class SellersService {
@@ -21,31 +23,10 @@ export class SellersService {
     @InjectModel(Seller.name)
     private readonly sellerModel: Model<SellerDocument>,
     private readonly jwtService: JwtService,
+    private readonly otpService: OtpService,
   ) {}
 
-  /**
-   * Generates a 6 digit numeric OTP
-   */
-  private generateOtpCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }
 
-  /**
-   * Generates and stores OTP for a seller, setting expiration to 10 minutes
-   */
-  private async generateOtpForSeller(seller: SellerDocument): Promise<string> {
-    const otp = this.generateOtpCode();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    seller.otp = await bcrypt.hash(otp, 10);
-    seller.otpExpiresAt = otpExpiresAt;
-    await seller.save();
-
-    // Note: In a real system, you would send this OTP via SMS or Email here.
-    // We log it for development visibility.
-    console.log(`[DEV ONLY] OTP for seller ${seller.email}: ${otp}`);
-    return otp;
-  }
 
   // ================= Register Seller =================
   async registerSeller(dto: CreateSellerDto) {
@@ -66,7 +47,7 @@ export class SellersService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const newSeller = new this.sellerModel({
+    const newSeller = await this.sellerModel.create({
       name: dto.name,
       email: dto.email,
       phone: dto.phone,
@@ -78,7 +59,11 @@ export class SellersService {
       role: 'seller',
     });
 
-    const otp = await this.generateOtpForSeller(newSeller);
+    await this.otpService.createOtp(OtpType.SELLER_VERIFICATION, {
+      userId: newSeller._id,
+      email: dto.email,
+      name: dto.name,
+    });
 
     return {
       message: 'Seller registered successfully. Please verify your OTP.',
@@ -87,9 +72,7 @@ export class SellersService {
 
   // ================= Verify OTP =================
   async verifyOtp(dto: VerifyOtpDto) {
-    const seller = await this.sellerModel
-      .findOne({ email: dto.email })
-      .select('+otp +otpExpiresAt');
+    const seller = await this.sellerModel.findOne({ email: dto.email });
 
     if (!seller) {
       throw new NotFoundException('Seller not found');
@@ -99,26 +82,12 @@ export class SellersService {
       throw new BadRequestException('Seller is already verified');
     }
 
-    if (!seller.otp || !seller.otpExpiresAt) {
-      throw new BadRequestException(
-        'No OTP found for this seller. Please request a new one.',
-      );
-    }
-
-    if (new Date() > seller.otpExpiresAt) {
-      throw new BadRequestException(
-        'OTP has expired. Please request a new one.',
-      );
-    }
-
-    const isMatch = await bcrypt.compare(dto.code, seller.otp);
-    if (!isMatch) {
-      throw new BadRequestException('Invalid OTP code');
-    }
+    await this.otpService.validateOtp(dto.code, OtpType.SELLER_VERIFICATION, {
+      userId: seller._id,
+      email: dto.email,
+    });
 
     seller.isVerified = true;
-    seller.otp = undefined;
-    seller.otpExpiresAt = undefined;
     await seller.save();
 
     return { message: 'Seller verified successfully. You can now login.' };
@@ -126,9 +95,7 @@ export class SellersService {
 
   // ================= Resend OTP =================
   async resendOtp(dto: ResendOtpDto) {
-    const seller = await this.sellerModel
-      .findOne({ email: dto.email })
-      .select('+otp +otpExpiresAt');
+    const seller = await this.sellerModel.findOne({ email: dto.email });
 
     if (!seller) {
       throw new NotFoundException('Seller not found');
@@ -138,7 +105,11 @@ export class SellersService {
       throw new BadRequestException('Seller is already verified');
     }
 
-    const otp = await this.generateOtpForSeller(seller);
+    await this.otpService.createOtp(OtpType.SELLER_VERIFICATION, {
+      userId: seller._id,
+      email: dto.email,
+      name: seller.name,
+    });
 
     return {
       message: 'A new OTP has been sent to your email.',

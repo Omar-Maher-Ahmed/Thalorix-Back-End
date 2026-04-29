@@ -47,7 +47,7 @@ export class OrdersService {
     }
 
     // ❌ منع شراء المنتج من نفسك
-    if (template.seller.toString() === userId) {
+    if (template.developerId.toString() === userId) {
       throw new BadRequestException('You cannot purchase your own template');
     }
 
@@ -69,7 +69,7 @@ export class OrdersService {
 
     const order = await this.orderModel.create({
       buyer: userId,
-      seller: template.seller,
+      seller: template.developerId,
       template: template._id,
       price,
       quantity,

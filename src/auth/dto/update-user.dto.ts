@@ -30,4 +30,9 @@ export class UpdateUserDto {
   @IsOptional()
   @IsNumberString()
   tokenVersion?: number;
+
+  @ApiPropertyOptional({ description: 'Short bio or biography written by the user about themselves' })
+  @IsOptional()
+  @IsString()
+  bio?: string;
 }

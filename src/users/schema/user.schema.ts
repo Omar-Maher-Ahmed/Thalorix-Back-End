@@ -28,6 +28,12 @@ export class User extends Document {
   @Prop({ required: true, unique: true })
   phone: string;
 
+  @Prop({ unique: true, sparse: true })
+  username?: string;
+
+  @Prop()
+  avatarUrl?: string;
+
   @Prop({ required: false })
   password: string;
 
@@ -37,6 +43,9 @@ export class User extends Document {
     default: Roles.User,
   })
   role: Roles;
+
+  @Prop({ required: false })
+  bio: string;
 
   @Prop({ required: false })
   refreshToken: string;

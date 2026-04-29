@@ -48,14 +48,14 @@ export class MarketPlaceService {
       }
 
       // 2. Fetch Template and populate Category (Task 1)
-      const template = await this.templateModel.findById(templateId).populate('category');
+      const template = await this.templateModel.findById(templateId).populate('categoryId');
       if (!template) {
         throw new NotFoundException('Template not found');
       }
 
       // 3. Extract category from template (Task 1)
-      // Since it's populated, template.category is the Category document
-      const templateCategoryId = (template.category as any)._id.toString();
+      // Since it's populated, template.categoryId is the Category document
+      const templateCategoryId = (template.categoryId as any)._id.toString();
 
       // 4. Validate match if user passed categoryId (Task 1)
       if (inputCategoryId) {

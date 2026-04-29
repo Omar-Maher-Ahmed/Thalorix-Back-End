@@ -400,6 +400,7 @@ export class AuthService {
     await this.otpService.createOtp(OtpType.PASSWORD_RESET, {
       userId: user._id,
       email: forgotPasswordDto.email,
+      phone: forgotPasswordDto.phone,
       name: user.name,
     });
 
@@ -423,6 +424,7 @@ export class AuthService {
     await this.otpService.validateOtp(dto.code, type, {
       userId: user._id,
       email: dto.email,
+      phone: dto.phone,
     });
 
     user.isVerified = true;
@@ -444,6 +446,7 @@ export class AuthService {
     await this.otpService.validateOtp(dto.code, OtpType.PASSWORD_RESET, {
       userId: user._id,
       email: dto.email,
+      phone: dto.phone,
     });
 
     user.password = await this.hashPassword(dto.newPassword);

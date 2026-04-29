@@ -35,13 +35,9 @@ export class CategoriesController {
   @ApiQuery({ name: 'page', required: false, description: 'Page number (1-indexed)', type: String, example: '1' })
   @ApiQuery({ name: 'limit', required: false, description: 'Number of items per page', type: String, example: '10' })
   @ApiQuery({ name: 'keyword', required: false, description: 'Search keyword to filter categories by name', type: String, example: 'electronics' })
-  @ApiQuery({ name: 'marketplaceId', required: false, description: 'Filter categories by marketplace MongoDB ObjectId', type: String, example: '60d5ecb8b392d7001f8e8e30' })
   @ApiResponse({ status: 200, description: 'List of categories retrieved successfully' })
   @Get()
   findAll(@Query() query: QueryCategoryDto) {
-    if (query.marketplaceId && !Types.ObjectId.isValid(query.marketplaceId)) {
-      throw new BadRequestException('Invalid marketplace ID');
-    }
     return this.categoriesService.findAll(query);
   }
 

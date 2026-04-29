@@ -54,18 +54,6 @@ export class Seller {
 
   @Prop({
     required: false,
-    select: false, // OTP is sensitive
-  })
-  otp?: string;
-
-  @Prop({
-    required: false,
-    select: false,
-  })
-  otpExpiresAt?: Date;
-
-  @Prop({
-    required: false,
   })
   lastLogin?: Date;
 

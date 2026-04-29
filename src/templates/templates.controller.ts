@@ -45,21 +45,6 @@ export class TemplateController {
     return this.templateService.create(dto, req.user);
   }
 
-  // ── GET /templates/marketplace/:id ─────────────────────────────────────────
-  @ApiOperation({
-    summary: 'Get templates by marketplace',
-    description: 'Retrieves all active templates for a specific marketplace (public).',
-  })
-  @ApiParam({ name: 'id', description: 'Marketplace ID', type: String })
-  @ApiResponse({ status: 200, description: 'Templates retrieved successfully' })
-  @Get('marketplace/:id')
-  findAllByMarketplace(@Param('id') id: string) {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Invalid marketplace ID');
-    }
-    return this.templateService.findAllByMarketplace(id);
-  }
-
   // ── PATCH /templates/:id ───────────────────────────────────────────────────
   @ApiOperation({
     summary: 'Update a template',

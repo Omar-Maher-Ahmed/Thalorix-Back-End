@@ -18,9 +18,4 @@ export class QueryCategoryDto {
   @IsOptional()
   @IsString()
   keyword?: string;
-
-  @ApiPropertyOptional({ description: 'The marketplace ID to filter categories', example: '60d5ecb8b392d7001f8e8e30' })
-  @IsOptional()
-  @IsMongoId()
-  marketplaceId?: string;
 }

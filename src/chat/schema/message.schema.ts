@@ -14,6 +14,9 @@ export class Message {
   @Prop({ required: true, trim: true })
   content: string;
 
+  @Prop()
+  attachmentUrl?: string;
+
   @Prop({ default: false })
   isRead: boolean;
 

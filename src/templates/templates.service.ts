@@ -38,9 +38,6 @@ export class TemplateService {
       if (!Types.ObjectId.isValid(createDto.categoryId)) {
         throw new BadRequestException('Invalid categoryId');
       }
-      if (!Types.ObjectId.isValid(createDto.marketplaceId)) {
-        throw new BadRequestException('Invalid marketplaceId');
-      }
 
       // 2. Existence Check
       const category = await this.categoryModel.findById(createDto.categoryId);
@@ -48,59 +45,23 @@ export class TemplateService {
         throw new NotFoundException('Category not found');
       }
 
-      // 3. Relation Check
-      if (category.marketplaceId.toString() !== createDto.marketplaceId) {
-        throw new ForbiddenException(
-          'The selected category does not belong to the specified marketplace',
-        );
-      }
-
       const template = await this.templateModel.create({
-        title: createDto.name,
+        title: createDto.title,
         description: createDto.description,
         price: createDto.price,
-        seller: new Types.ObjectId(user._id),
-        category: new Types.ObjectId(createDto.categoryId),
+        fileUrl: createDto.fileUrl,
+        developerId: new Types.ObjectId(user._id),
+        categoryId: new Types.ObjectId(createDto.categoryId),
       });
 
       return template.populate([
-        { path: 'seller', select: '-password' },
-        {
-          path: 'category',
-          populate: { path: 'marketplaceId' },
-        },
+        { path: 'developerId', select: '-password' },
+        { path: 'categoryId' },
       ]);
     } catch (error) {
       this.logger.error(`Template Create Error: ${error.message}`, error.stack);
       throw error;
     }
-  }
-
-  // ── Find All By Marketplace ─────────────────────────────────────────────────
-
-  async findAllByMarketplace(marketplaceId: string) {
-    // Guard: validate the ID before querying
-    if (!Types.ObjectId.isValid(marketplaceId)) {
-      throw new BadRequestException('Invalid marketplace ID');
-    }
-
-    const categories = await this.categoryModel.find({
-      marketplaceId: new Types.ObjectId(marketplaceId),
-    });
-
-    const categoryIds = categories.map((c) => c._id);
-
-    return this.templateModel
-      .find({
-        category: { $in: categoryIds },
-        isActive: true,
-      })
-      .populate('seller', '-password')
-      .populate({
-        path: 'category',
-        // ✅ FIX: correct ref field name is 'marketplaceId', not 'marketplace'
-        populate: { path: 'marketplaceId' },
-      });
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────
@@ -117,7 +78,7 @@ export class TemplateService {
         throw new NotFoundException('Template not found');
       }
 
-      if (template.seller.toString() !== user._id.toString()) {
+      if (template.developerId.toString() !== user._id.toString()) {
         throw new ForbiddenException(
           'You are not allowed to update this template',
         );
@@ -134,30 +95,19 @@ export class TemplateService {
           throw new NotFoundException('Category not found');
         }
 
-        if (
-          dto.marketplaceId &&
-          category.marketplaceId.toString() !== dto.marketplaceId
-        ) {
-          throw new ForbiddenException(
-            'You cannot move a template to a category from a different marketplace',
-          );
-        }
-
-        template.category = new Types.ObjectId(dto.categoryId);
+        template.categoryId = new Types.ObjectId(dto.categoryId);
       }
 
-      template.title = dto.name ?? template.title;
+      template.title = dto.title ?? template.title;
       template.description = dto.description ?? template.description;
       template.price = dto.price ?? template.price;
+      if (dto.fileUrl) template.fileUrl = dto.fileUrl;
 
       await template.save();
 
       return template.populate([
-        { path: 'seller', select: '-password' },
-        {
-          path: 'category',
-          populate: { path: 'marketplaceId' },
-        },
+        { path: 'developerId', select: '-password' },
+        { path: 'categoryId' },
       ]);
     } catch (error) {
       this.logger.error(`Template Update Error: ${error.message}`, error.stack);
@@ -179,7 +129,7 @@ export class TemplateService {
         throw new NotFoundException('Template not found');
       }
 
-      if (template.seller.toString() !== user._id.toString()) {
+      if (template.developerId.toString() !== user._id.toString()) {
         throw new ForbiddenException(
           'You are not allowed to delete this template',
         );

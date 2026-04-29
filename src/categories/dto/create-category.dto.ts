@@ -11,10 +11,6 @@ export class CreateCategoryDto {
   @Matches(/^(?! +$)[a-zA-Z0-9 ]+$/, { message: 'name must contain only letters, numbers, and spaces, and cannot be empty or only spaces' })
   name: string;
 
-  @ApiProperty({ description: 'The marketplace ID this category belongs to', example: '60d5ecb8b392d7001f8e8e30' })
-  @IsMongoId()
-  marketplaceId: string;
-
   @ApiPropertyOptional({ description: 'The parent category ID if it is a subcategory', example: '60d5ecb8b392d7001f8e8e31' })
   @IsMongoId()
   @IsOptional()

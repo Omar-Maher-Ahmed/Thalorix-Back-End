@@ -5,10 +5,12 @@ import { ConfigService } from '@nestjs/config';
 import { Seller, SellerSchema } from './schema/seller.schema';
 import { SellersService } from './sellers.service';
 import { SellersController } from './sellers.controller';
+import { OtpModule } from '../otp/otp.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Seller.name, schema: SellerSchema }]),
+    OtpModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
