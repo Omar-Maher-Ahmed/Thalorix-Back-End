@@ -24,7 +24,21 @@ export class CloudinaryService {
     const folder = await this.folderModel.findOne({ slug, isActive: true });
 
     if (!folder) {
-      throw new NotFoundException('Upload folder not found or inactive');
+      // Auto-create folder if it doesn't exist to prevent upload failures
+      const newFolder = await this.folderModel.findOneAndUpdate(
+        { slug },
+        {
+          $setOnInsert: {
+            name: slug.charAt(0).toUpperCase() + slug.slice(1).replace('-', ' '),
+            slug: slug,
+            path: `thalorix/${slug}`,
+            isActive: true,
+            maxSizeMB: 50,
+          },
+        },
+        { upsert: true, new: true },
+      );
+      return newFolder.path;
     }
 
     return folder.path;

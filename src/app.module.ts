@@ -17,6 +17,7 @@ import { MailerModule } from './services/mailer/mailer.module';
 import { AdminModule } from './admin/admin.module';
 import { CommunityModule } from './community/community.module';
 import { SellersModule } from './sellers/sellers.module';
+import { CloudinaryModule } from './services/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { SellersModule } from './sellers/sellers.module';
     OtpModule,
     MailerModule,
     CommunityModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

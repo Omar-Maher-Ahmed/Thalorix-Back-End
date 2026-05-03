@@ -19,11 +19,11 @@ export class CreateTemplateDto {
     @IsNumber()
     price: number;
 
-    @ApiProperty({ description: 'URL link to the downloadable template file', example: 'https://example.com/template.zip' })
+    @ApiPropertyOptional({ description: 'URL link to the downloadable template file', example: 'https://example.com/template.zip' })
+    @IsOptional()
     @IsString()
-    @IsNotEmpty()
     @MaxLength(255)
-    fileUrl: string;
+    fileUrl?: string;
 
     @ApiProperty({ description: 'The associated category ID', example: '60d5ecb8b392d7001f8e8e31' })
     @IsMongoId()

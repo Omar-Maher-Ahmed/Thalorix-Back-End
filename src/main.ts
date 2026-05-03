@@ -59,11 +59,34 @@ async function bootstrap() {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
 
+        // Handle Mongoose Validation Errors
+        if (exception?.name === 'ValidationError') {
+          const errors = Object.values(exception.errors || {}).map((err: any) => err.message);
+          return response.status(400).json({
+            statusCode: 400,
+            message: errors.length > 1 ? errors : errors[0],
+            error: 'Bad Request',
+          });
+        }
+
+        // Handle Mongoose Duplicate Key Errors
+        if (exception?.code === 11000) {
+          const field = Object.keys(exception.keyValue || {})[0];
+          return response.status(409).json({
+            statusCode: 409,
+            message: field ? `Duplicate entry for ${field}` : 'Duplicate entry detected',
+            error: 'Conflict',
+          });
+        }
+
         // Only mask true internal server errors (no status or status 500)
         // All HTTP exceptions (including 400 validation errors) pass through with their real response
-        const status = exception.status ?? exception.statusCode;
+        const status = exception?.status ?? exception?.statusCode;
 
         if (!status || status === 500) {
+          // Log the actual server error to the terminal to help developers debug
+          console.error('🔥 Internal Server Error:', exception);
+          
           return response.status(500).json({
             statusCode: 500,
             message: 'Internal server error',
