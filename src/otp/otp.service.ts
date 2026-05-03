@@ -37,12 +37,28 @@ export class OtpService {
     },
   ): Promise<string> {
     const identifier = this.resolveIdentifier(options);
-    try {
-      // Mark all existing active OTPs of this type for this identifier as used
-      await this.markExistingOtpsUsed(type, options);
 
-      const plainCode = randomInt(100000, 999999).toString();
-      const hashedCode = await bcrypt.hash(plainCode, BCRYPT_ROUNDS);
+    // Step 1: Generate the code BEFORE touching the DB
+    const plainCode = randomInt(100000, 999999).toString();
+    const hashedCode = await bcrypt.hash(plainCode, BCRYPT_ROUNDS);
+
+    // Step 2: Send notification FIRST — before saving to DB.
+    // This prevents orphaned DB records (isUsed: false) that would get
+    // marked as used on the next retry, making verification permanently fail.
+    try {
+      if (options.email) {
+        await this.notification.sendByEmail(options.email, plainCode, type, options.name);
+      } else if (options.phone) {
+        await this.notification.sendByPhone(options.phone, plainCode, type);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send OTP notification to ${identifier}: ${error.message}`);
+      throw new InternalServerErrorException('Failed to send OTP. Please try again.');
+    }
+
+    // Step 3: Notification succeeded — now invalidate old OTPs and persist the new one
+    try {
+      await this.markExistingOtpsUsed(type, options);
 
       await this.otpModel.create({
         hashedCode,
@@ -56,23 +72,12 @@ export class OtpService {
         isUsed: false,
       });
 
-      if (options.email) {
-        await this.notification.sendByEmail(
-          options.email,
-          plainCode,
-          type,
-          options.name,
-        );
-      } else if (options.phone) {
-        await this.notification.sendByPhone(options.phone, plainCode, type);
-      }
-
       this.logger.log(`OTP created and sent successfully to ${identifier} for ${type}`);
       return plainCode;
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      this.logger.error(`Failed to create OTP for ${identifier}: ${error.message}`);
-      throw new InternalServerErrorException('Failed to send OTP.');
+      this.logger.error(`Failed to save OTP record for ${identifier}: ${error.message}`);
+      throw new InternalServerErrorException('OTP was sent but could not be saved. Please try again.');
     }
   }
 
