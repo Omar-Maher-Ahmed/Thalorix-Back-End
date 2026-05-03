@@ -8,12 +8,10 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { randomInt } from 'crypto';
-import * as bcrypt from 'bcrypt';
 import { Otp, OtpType } from './schema/otp.schema';
 import { OtpNotificationService } from './otp-notification.service';
 
 const OTP_TTL_MS = 15 * 60 * 1000;
-const BCRYPT_ROUNDS = 10;
 
 @Injectable()
 export class OtpService {
@@ -38,30 +36,29 @@ export class OtpService {
   ): Promise<string> {
     const identifier = this.resolveIdentifier(options);
 
-    // Step 1: Generate the code BEFORE touching the DB
-    const plainCode = randomInt(100000, 999999).toString();
-    const hashedCode = await bcrypt.hash(plainCode, BCRYPT_ROUNDS);
+    // Step 1: Generate plain code
+    const code = randomInt(100000, 999999).toString();
 
     // Step 2: Send notification FIRST — before saving to DB.
-    // This prevents orphaned DB records (isUsed: false) that would get
-    // marked as used on the next retry, making verification permanently fail.
+    // This prevents orphaned DB records that would get marked as used
+    // on the next retry, making verification permanently fail.
     try {
       if (options.email) {
-        await this.notification.sendByEmail(options.email, plainCode, type, options.name);
+        await this.notification.sendByEmail(options.email, code, type, options.name);
       } else if (options.phone) {
-        await this.notification.sendByPhone(options.phone, plainCode, type);
+        await this.notification.sendByPhone(options.phone, code, type);
       }
     } catch (error) {
       this.logger.error(`Failed to send OTP notification to ${identifier}: ${error.message}`);
       throw new InternalServerErrorException('Failed to send OTP. Please try again.');
     }
 
-    // Step 3: Notification succeeded — now invalidate old OTPs and persist the new one
+    // Step 3: Notification succeeded — invalidate old OTPs then save the new one
     try {
       await this.markExistingOtpsUsed(type, options);
 
       await this.otpModel.create({
-        hashedCode,
+        code,
         userId: options.userId
           ? new Types.ObjectId(options.userId.toString())
           : undefined,
@@ -73,7 +70,7 @@ export class OtpService {
       });
 
       this.logger.log(`OTP created and sent successfully to ${identifier} for ${type}`);
-      return plainCode;
+      return code;
     } catch (error) {
       if (error instanceof HttpException) throw error;
       this.logger.error(`Failed to save OTP record for ${identifier}: ${error.message}`);
@@ -83,7 +80,6 @@ export class OtpService {
 
   /**
    * Validate an OTP and mark it as used.
-   * Does NOT update user status to remain generic.
    */
   async validateOtp(
     inputCode: string,
@@ -103,8 +99,7 @@ export class OtpService {
         throw new BadRequestException('Invalid or expired OTP');
       }
 
-      const isMatch = await bcrypt.compare(inputCode, otp.hashedCode);
-      if (!isMatch) {
+      if (otp.code !== inputCode) {
         this.logger.warn(`OTP validation failed: Incorrect code for ${identifier}`);
         throw new BadRequestException('Invalid OTP code');
       }

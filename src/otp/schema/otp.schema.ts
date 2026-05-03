@@ -13,9 +13,8 @@ export enum OtpType {
   collection: 'otps',
 })
 export class Otp extends Document {
-  // Stored as bcrypt hash — never plain text
   @Prop({ required: true })
-  hashedCode: string;
+  code: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   userId?: Types.ObjectId;
