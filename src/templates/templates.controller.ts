@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { CreateTemplateDto } from './dto/create-template.dto';
+import { UpdateTemplateDto } from './dto/update-template.dto';
 import { TemplateService } from './templates.service';
 import { Types } from 'mongoose';
 
@@ -80,7 +81,7 @@ export class TemplateController {
   })
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'Template ID', type: String })
-  @ApiBody({ type: CreateTemplateDto })
+  @ApiBody({ type: UpdateTemplateDto })
   @ApiResponse({ status: 200, description: 'Template updated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden – not the template owner' })
@@ -89,7 +90,7 @@ export class TemplateController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() dto: CreateTemplateDto,
+    @Body() dto: UpdateTemplateDto,
     @Req() req: any,
   ) {
     if (!Types.ObjectId.isValid(id)) {

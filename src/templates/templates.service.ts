@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Template, TemplateDocument } from './schema/template.schema';
 import { CreateTemplateDto } from './dto/create-template.dto';
+import { UpdateTemplateDto } from './dto/update-template.dto';
 import {
   Category,
   CategoryDocument,
@@ -100,7 +101,7 @@ export class TemplateService {
 
   // ── Update ─────────────────────────────────────────────────────────────────
 
-  async update(id: string, dto: CreateTemplateDto, user: any) {
+  async update(id: string, dto: UpdateTemplateDto, user: any) {
     try {
       if (!Types.ObjectId.isValid(id)) {
         throw new BadRequestException('Invalid template ID');
