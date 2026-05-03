@@ -45,6 +45,34 @@ export class TemplateController {
     return this.templateService.create(dto, req.user);
   }
 
+  // ── GET /templates ─────────────────────────────────────────────────────────
+  @ApiOperation({
+    summary: 'Get all templates',
+    description: 'Retrieves all active templates.',
+  })
+  @ApiResponse({ status: 200, description: 'Templates retrieved successfully' })
+  @Get()
+  findAll() {
+    return this.templateService.findAll();
+  }
+
+  // ── GET /templates/:id ─────────────────────────────────────────────────────
+  @ApiOperation({
+    summary: 'Get a template by ID',
+    description: 'Retrieves a single template by its ID.',
+  })
+  @ApiParam({ name: 'id', description: 'Template ID', type: String })
+  @ApiResponse({ status: 200, description: 'Template retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid ID format' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid template ID');
+    }
+    return this.templateService.findOne(id);
+  }
+
   // ── PATCH /templates/:id ───────────────────────────────────────────────────
   @ApiOperation({
     summary: 'Update a template',

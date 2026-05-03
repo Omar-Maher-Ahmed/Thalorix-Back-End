@@ -64,6 +64,40 @@ export class TemplateService {
     }
   }
 
+  // ── Read ───────────────────────────────────────────────────────────────────
+
+  async findAll() {
+    try {
+      return await this.templateModel.find({ isActive: true }).populate([
+        { path: 'developerId', select: '-password' },
+        { path: 'categoryId' },
+      ]);
+    } catch (error) {
+      this.logger.error(`Template FindAll Error: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async findOne(id: string) {
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid template ID');
+      }
+      const template = await this.templateModel.findById(id).populate([
+        { path: 'developerId', select: '-password' },
+        { path: 'categoryId' },
+      ]);
+
+      if (!template) {
+        throw new NotFoundException('Template not found');
+      }
+      return template;
+    } catch (error) {
+      this.logger.error(`Template FindOne Error: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
   // ── Update ─────────────────────────────────────────────────────────────────
 
   async update(id: string, dto: CreateTemplateDto, user: any) {
