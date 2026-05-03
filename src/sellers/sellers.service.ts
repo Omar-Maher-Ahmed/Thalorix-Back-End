@@ -13,6 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Seller, SellerDocument } from './schema/seller.schema';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
+import { UpdateSellerDto } from './dto/update-seller.dto';
+import { QuerySellerDto } from './dto/query-seller.dto';
 import { VerifyOtpDto } from '../otp/dto/otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { OtpService } from '../otp/otp.service';
@@ -179,5 +181,91 @@ export class SellersService {
         role: seller.role,
       },
     };
+  }
+
+  // ================= Get All Sellers =================
+  async getSellers(query: QuerySellerDto) {
+    const { limit = 10, page = 1, search } = query;
+    const skip = (page - 1) * limit;
+
+    const filter: any = {};
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { storeName: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const [sellers, total] = await Promise.all([
+      this.sellerModel
+        .find(filter)
+        .select('-password -currentAccessToken -refreshToken')
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      this.sellerModel.countDocuments(filter),
+    ]);
+
+    return {
+      data: sellers,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ================= Get Seller By ID =================
+  async getSellerById(id: string) {
+    const seller = await this.sellerModel
+      .findById(id)
+      .select('-password -currentAccessToken -refreshToken')
+      .lean();
+
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    return seller;
+  }
+
+  // ================= Update Seller =================
+  async updateSeller(id: string, dto: UpdateSellerDto) {
+    // Check phone uniqueness if being changed
+    if (dto.phone) {
+      const existing = await this.sellerModel.findOne({
+        phone: dto.phone,
+        _id: { $ne: id },
+      });
+      if (existing) {
+        throw new ConflictException('Phone number is already in use by another seller');
+      }
+    }
+
+    const updated = await this.sellerModel
+      .findByIdAndUpdate(id, { $set: dto }, { new: true, runValidators: true })
+      .select('-password -currentAccessToken -refreshToken')
+      .lean();
+
+    if (!updated) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    return { message: 'Seller updated successfully', seller: updated };
+  }
+
+  // ================= Delete Seller =================
+  async deleteSeller(id: string) {
+    const deleted = await this.sellerModel.findByIdAndDelete(id).lean();
+
+    if (!deleted) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    return { message: 'Seller deleted successfully' };
   }
 }
