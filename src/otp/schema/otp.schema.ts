@@ -6,6 +6,7 @@ export enum OtpType {
   PHONE_VERIFICATION = 'phone_verification',
   PASSWORD_RESET = 'password_reset',
   SELLER_VERIFICATION = 'seller_verification',
+  ADMIN_VERIFICATION = 'admin_verification',
 }
 
 @Schema({

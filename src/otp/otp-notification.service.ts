@@ -9,6 +9,7 @@ const ACTION_LABELS: Record<OtpType, string> = {
   [OtpType.PHONE_VERIFICATION]: 'phone verification',
   [OtpType.PASSWORD_RESET]: 'password reset',
   [OtpType.SELLER_VERIFICATION]: 'seller verification',
+  [OtpType.ADMIN_VERIFICATION]: 'admin account verification',
 };
 
 @Injectable()

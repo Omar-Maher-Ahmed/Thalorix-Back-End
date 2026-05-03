@@ -4,12 +4,16 @@ import {
   HttpException,
   Logger,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { randomInt } from 'crypto';
 import { Otp, OtpType } from './schema/otp.schema';
 import { OtpNotificationService } from './otp-notification.service';
+import { User } from '../users/schema/user.schema';
+import { Seller } from '../sellers/schema/seller.schema';
+import { Admin } from '../admin/schema/admin.schema';
 
 const OTP_TTL_MS = 15 * 60 * 1000;
 
@@ -19,6 +23,9 @@ export class OtpService {
 
   constructor(
     @InjectModel(Otp.name) private readonly otpModel: Model<Otp>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Seller.name) private readonly sellerModel: Model<Seller>,
+    @InjectModel(Admin.name) private readonly adminModel: Model<Admin>,
     private readonly notification: OtpNotificationService,
   ) {}
 
@@ -36,12 +43,17 @@ export class OtpService {
   ): Promise<string> {
     const identifier = this.resolveIdentifier(options);
 
-    // Step 1: Generate plain code
     const code = randomInt(100000, 999999).toString();
 
-    // Step 2: Send notification FIRST — before saving to DB.
-    // This prevents orphaned DB records that would get marked as used
-    // on the next retry, making verification permanently fail.
+    // Print OTP to terminal for admin/seller (easy manual testing)
+    if (type === OtpType.ADMIN_VERIFICATION || type === OtpType.SELLER_VERIFICATION) {
+      this.logger.log(`\n==================================================`);
+      this.logger.log(`  🔑 OTP for [${type}] → ${identifier}`);
+      this.logger.log(`  📋 CODE: ${code}`);
+      this.logger.log(`==================================================\n`);
+    }
+
+    // Send notification FIRST — before saving to DB
     try {
       if (options.email) {
         await this.notification.sendByEmail(options.email, code, type, options.name);
@@ -49,11 +61,11 @@ export class OtpService {
         await this.notification.sendByPhone(options.phone, code, type);
       }
     } catch (error) {
-      this.logger.error(`Failed to send OTP notification to ${identifier}: ${error.message}`);
+      this.logger.error(`Failed to send OTP to ${identifier}: ${error.message}`);
       throw new InternalServerErrorException('Failed to send OTP. Please try again.');
     }
 
-    // Step 3: Notification succeeded — invalidate old OTPs then save the new one
+    // Notification succeeded — invalidate old OTPs then persist the new one
     try {
       await this.markExistingOtpsUsed(type, options);
 
@@ -69,17 +81,101 @@ export class OtpService {
         isUsed: false,
       });
 
-      this.logger.log(`OTP created and sent successfully to ${identifier} for ${type}`);
+      this.logger.log(`OTP created and sent to ${identifier} for ${type}`);
       return code;
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      this.logger.error(`Failed to save OTP record for ${identifier}: ${error.message}`);
-      throw new InternalServerErrorException('OTP was sent but could not be saved. Please try again.');
+      this.logger.error(`Failed to save OTP for ${identifier}: ${error.message}`);
+      throw new InternalServerErrorException('OTP sent but could not be saved. Try again.');
     }
   }
 
   /**
-   * Validate an OTP and mark it as used.
+   * Unified verify — auto-detects OTP type from DB, validates code,
+   * then updates the correct entity (User / Seller isVerified).
+   */
+  async verifyAndUpdate(
+    inputCode: string,
+    options: { email?: string; phone?: string },
+  ): Promise<{ message: string }> {
+    const identifier = this.resolveIdentifier(options);
+
+    // Build identifier filter (no type constraint — auto-detect)
+    const identifierFilter: Record<string, any> = {};
+    if (options.email) identifierFilter.email = options.email.toLowerCase();
+    else if (options.phone) identifierFilter.phone = options.phone;
+
+    this.logger.debug(`[verifyAndUpdate] identifier=${identifier} code=${inputCode}`);
+
+    // Find the most recent active OTP for this identifier (any type)
+    const otp = await this.otpModel
+      .findOne({ ...identifierFilter, isUsed: false, expiresAt: { $gt: new Date() } })
+      .sort({ createdAt: -1 });
+
+    if (!otp) {
+      this.logger.warn(`[verifyAndUpdate] No active OTP found for ${identifier}`);
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    if (otp.code !== inputCode) {
+      this.logger.warn(`[verifyAndUpdate] Code mismatch for ${identifier}`);
+      throw new BadRequestException('Invalid OTP code');
+    }
+
+    // Mark as used
+    otp.isUsed = true;
+    await otp.save();
+
+    this.logger.log(`[verifyAndUpdate] OTP validated for ${identifier} (type=${otp.type})`);
+
+    // Update entity based on auto-detected OTP type
+    if (otp.type === OtpType.EMAIL_VERIFICATION || otp.type === OtpType.PHONE_VERIFICATION) {
+      const filter = options.email
+        ? { email: options.email.toLowerCase() }
+        : { phone: options.phone };
+      const user = await this.userModel.findOne(filter);
+      if (!user) throw new NotFoundException('User not found');
+      user.isVerified = true;
+      await user.save();
+      this.logger.log(`[verifyAndUpdate] User ${identifier} marked as verified`);
+      return { message: 'Account verified successfully' };
+    }
+
+    if (otp.type === OtpType.SELLER_VERIFICATION) {
+      const filter = options.email
+        ? { email: options.email.toLowerCase() }
+        : { phone: options.phone };
+      const seller = await this.sellerModel.findOne(filter);
+      if (!seller) throw new NotFoundException('Seller not found');
+      if (seller.isVerified) throw new BadRequestException('Seller is already verified');
+      seller.isVerified = true;
+      await seller.save();
+      this.logger.log(`[verifyAndUpdate] Seller ${identifier} marked as verified`);
+      return { message: 'Seller account verified successfully. You can now login.' };
+    }
+
+    if (otp.type === OtpType.ADMIN_VERIFICATION) {
+      const filter = options.email
+        ? { email: options.email.toLowerCase() }
+        : { phone: options.phone };
+      const admin = await this.adminModel.findOne(filter);
+      if (!admin) throw new NotFoundException('Admin not found');
+      if (admin.isVerified) throw new BadRequestException('Admin is already verified');
+      admin.isVerified = true;
+      await admin.save();
+      this.logger.log(`[verifyAndUpdate] Admin ${identifier} marked as verified`);
+      return { message: 'Admin account verified successfully. You can now login.' };
+    }
+
+    if (otp.type === OtpType.PASSWORD_RESET) {
+      return { message: 'OTP verified. You may now reset your password.' };
+    }
+
+    throw new BadRequestException('Unknown OTP type');
+  }
+
+  /**
+   * Validate an OTP and mark it as used. (used internally by resetPassword)
    */
   async validateOtp(
     inputCode: string,
@@ -95,24 +191,23 @@ export class OtpService {
         .sort({ createdAt: -1 });
 
       if (!otp) {
-        this.logger.warn(`OTP validation failed: No active OTP found for ${identifier}`);
+        this.logger.warn(`[validateOtp] No active OTP for ${identifier}`);
         throw new BadRequestException('Invalid or expired OTP');
       }
 
       if (otp.code !== inputCode) {
-        this.logger.warn(`OTP validation failed: Incorrect code for ${identifier}`);
+        this.logger.warn(`[validateOtp] Code mismatch for ${identifier}`);
         throw new BadRequestException('Invalid OTP code');
       }
 
-      // Mark the OTP as used
       otp.isUsed = true;
       await otp.save();
 
-      this.logger.log(`OTP validated successfully for ${identifier} (${type})`);
+      this.logger.log(`[validateOtp] Success for ${identifier} (${type})`);
       return true;
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      this.logger.error(`Error validating OTP for ${identifier}: ${error.message}`);
+      this.logger.error(`[validateOtp] Error for ${identifier}: ${error.message}`);
       throw new InternalServerErrorException('Error validating OTP');
     }
   }

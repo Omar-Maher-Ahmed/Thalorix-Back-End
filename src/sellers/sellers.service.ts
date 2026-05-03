@@ -16,7 +16,6 @@ import { LoginSellerDto } from './dto/login-seller.dto';
 import { UpdateSellerDto } from './dto/update-seller.dto';
 import { QuerySellerDto } from './dto/query-seller.dto';
 import { VerifyOtpDto } from '../otp/dto/otp.dto';
-import { ResendOtpDto } from './dto/resend-otp.dto';
 import { OtpService } from '../otp/otp.service';
 import { OtpType } from '../otp/schema/otp.schema';
 
@@ -70,55 +69,6 @@ export class SellersService {
 
     return {
       message: 'Seller registered successfully. Please verify your OTP.',
-    };
-  }
-
-  // ================= Verify OTP =================
-  async verifyOtp(dto: VerifyOtpDto) {
-    const seller = await this.sellerModel.findOne({ email: dto.email });
-
-    if (!seller) {
-      throw new NotFoundException('Seller not found');
-    }
-
-    if (seller.isVerified) {
-      throw new BadRequestException('Seller is already verified');
-    }
-
-    await this.otpService.validateOtp(
-      dto.code,
-      dto.type || OtpType.SELLER_VERIFICATION,
-      {
-      userId: seller._id,
-      email: dto.email,
-    });
-
-    seller.isVerified = true;
-    await seller.save();
-
-    return { message: 'Seller verified successfully. You can now login.' };
-  }
-
-  // ================= Resend OTP =================
-  async resendOtp(dto: ResendOtpDto) {
-    const seller = await this.sellerModel.findOne({ email: dto.email });
-
-    if (!seller) {
-      throw new NotFoundException('Seller not found');
-    }
-
-    if (seller.isVerified) {
-      throw new BadRequestException('Seller is already verified');
-    }
-
-    await this.otpService.createOtp(OtpType.SELLER_VERIFICATION, {
-      userId: seller._id,
-      email: dto.email,
-      name: seller.name,
-    });
-
-    return {
-      message: 'A new OTP has been sent to your email.',
     };
   }
 

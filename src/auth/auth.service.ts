@@ -14,7 +14,6 @@ import {
   WebsiteLoginDto,
   MobileLoginDto,
   ForgotPasswordDto,
-  VerifyOtpDto,
   ResetPasswordDto,
 } from '../auth/dto';
 import { OtpService } from '../otp/otp.service';
@@ -375,7 +374,7 @@ export class AuthService {
       role: 'user',
     });
 
-    const otp = await this.otpService.createOtp(OtpType.PHONE_VERIFICATION, {
+    const otp = await this.otpService.createOtp(OtpType.EMAIL_VERIFICATION, {
       userId: newUser._id,
       email: dto.email,
       name: dto.name,
@@ -405,32 +404,6 @@ export class AuthService {
     });
 
     return { message: 'Password reset OTP sent' };
-  }
-
-  // ================= Verify OTP =================
-  async verifyOtp(dto: VerifyOtpDto) {
-    const user = await this.userModel.findOne({
-      $or: [{ email: dto.email }, { phone: dto.phone }],
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    const type =
-      dto.type ||
-      (dto.email ? OtpType.EMAIL_VERIFICATION : OtpType.PHONE_VERIFICATION);
-
-    await this.otpService.validateOtp(dto.code, type, {
-      userId: user._id,
-      email: dto.email,
-      phone: dto.phone,
-    });
-
-    user.isVerified = true;
-    await user.save();
-
-    return { message: 'Account verified successfully' };
   }
 
   // ================= Reset Password =================

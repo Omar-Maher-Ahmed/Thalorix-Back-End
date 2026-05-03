@@ -13,6 +13,8 @@ import { UpdateAdminDto } from './dto/update-admin.dto';
 import { LoginAdminDto } from './dto/login-admin.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
+import { OtpService } from '../otp/otp.service';
+import { OtpType } from '../otp/schema/otp.schema';
 
 @Injectable()
 export class AdminService {
@@ -20,6 +22,7 @@ export class AdminService {
     @InjectModel(Admin.name)
     private readonly adminModel: Model<Admin>,
     private readonly jwtService: JwtService,
+    private readonly otpService: OtpService,
   ) {}
 
   // ================= Find All =================
@@ -69,11 +72,17 @@ export class AdminService {
       phone: dto.phone,
       password: hashedPassword,
       role: 'admin',
-      isVerified: true,
+      isVerified: false,
+    });
+
+    await this.otpService.createOtp(OtpType.ADMIN_VERIFICATION, {
+      userId: newAdmin._id,
+      email: dto.email,
+      name: dto.name,
     });
 
     return {
-      message: 'Admin created successfully',
+      message: 'Admin created successfully. Please verify your OTP to activate the account.',
     };
   }
 

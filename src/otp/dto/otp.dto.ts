@@ -51,28 +51,16 @@ export class RequestOtpDto {
 
 export class VerifyOtpDto {
   @ApiPropertyOptional({
-    enum: OtpType,
-    enumName: 'OtpType',
-    description: 'The type of OTP being verified',
-    example: OtpType.EMAIL_VERIFICATION,
-  })
-  @IsEnum(OtpType)
-  @IsOptional()
-  type?: OtpType;
-
-  @ApiPropertyOptional({
-    description: 'The email address of the user. Required when phone is not provided.',
+    description: 'The email address. Required when phone is not provided.',
     example: 'user@example.com',
-    required: false,
   })
   @ValidateIf((o) => !o.phone)
   @IsEmail({}, { message: 'Invalid email format' })
   email?: string;
 
   @ApiPropertyOptional({
-    description: 'The phone number of the user. Required when email is not provided.',
+    description: 'The phone number. Required when email is not provided.',
     example: '+1234567890',
-    required: false,
   })
   @ValidateIf((o) => !o.email)
   @IsString({ message: 'Phone number must be a string' })

@@ -11,7 +11,10 @@ import * as helmet from 'helmet';
 import * as express from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+    logger: ['error', 'warn', 'log', 'debug'],
+  });
   app.enableCors({
     origin: true, // Allow all origins (or specify your frontend URL)
     credentials: true,

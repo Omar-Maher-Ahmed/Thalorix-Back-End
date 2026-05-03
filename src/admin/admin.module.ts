@@ -9,9 +9,11 @@ import { AdminService } from './admin.service';
 import { Admin, AdminSchema } from './schema/admin.schema';
 import { User, UserSchema } from '../users/schema/user.schema';
 import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
+import { OtpModule } from '../otp/otp.module';
 
 @Module({
   imports: [
+    OtpModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     MongooseModule.forFeature([
       { name: Admin.name, schema: AdminSchema },
