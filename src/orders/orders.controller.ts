@@ -7,6 +7,7 @@ import {
   Body,
   UseGuards,
   Request,
+  Delete,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -80,5 +81,18 @@ export class OrdersController {
   @Patch(':id/refund')
   refundOrder(@Param('id') id: string, @Request() req) {
     return this.ordersService.refundOrder(id, req.user.userId);
+  }
+
+  // 🗑️ Delete Order
+  @ApiOperation({ summary: 'Delete an order', description: 'Deletes a pending order (Buyer) or any order (Admin)' })
+  @ApiParam({ name: 'id', description: 'Order ID', type: String })
+  @ApiResponse({ status: 200, description: 'Order deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Cannot delete processed order' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  @Delete(':id')
+  remove(@Param('id') id: string, @Request() req) {
+    return this.ordersService.remove(id, req.user.userId, req.user.role);
   }
 }
