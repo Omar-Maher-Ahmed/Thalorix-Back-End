@@ -51,6 +51,7 @@ export class TemplateService {
         description: createDto.description,
         price: createDto.price,
         fileUrl: createDto.fileUrl,
+        image: createDto.image,
         developerId: new Types.ObjectId(user._id),
         categoryId: new Types.ObjectId(createDto.categoryId),
       });
@@ -137,6 +138,7 @@ export class TemplateService {
       template.description = dto.description ?? template.description;
       template.price = dto.price ?? template.price;
       if (dto.fileUrl) template.fileUrl = dto.fileUrl;
+      if (dto.image) template.image = dto.image;
 
       await template.save();
 

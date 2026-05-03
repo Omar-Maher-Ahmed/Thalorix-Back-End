@@ -28,4 +28,9 @@ export class CreateTemplateDto {
     @ApiProperty({ description: 'The associated category ID', example: '60d5ecb8b392d7001f8e8e31' })
     @IsMongoId()
     categoryId: string;
+
+    @ApiPropertyOptional({ description: 'URL of the template thumbnail image', example: 'https://example.com/image.png' })
+    @IsOptional()
+    @IsString()
+    image?: string;
 }

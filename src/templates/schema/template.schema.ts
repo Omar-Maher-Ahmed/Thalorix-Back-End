@@ -20,6 +20,9 @@ export class Template {
   @Prop({ default: 'Pending' })
   status: string;
 
+  @Prop({ required: false })
+  image?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   developerId: Types.ObjectId;
 
