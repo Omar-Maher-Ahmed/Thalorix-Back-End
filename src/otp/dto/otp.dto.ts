@@ -49,16 +49,16 @@ export class RequestOtpDto {
   name?: string;
 }
 
-export class OtpVerifyDto {
-  @ApiProperty({
+export class VerifyOtpDto {
+  @ApiPropertyOptional({
     enum: OtpType,
     enumName: 'OtpType',
     description: 'The type of OTP being verified',
     example: OtpType.EMAIL_VERIFICATION,
   })
   @IsEnum(OtpType)
-  @IsNotEmpty()
-  type: OtpType;
+  @IsOptional()
+  type?: OtpType;
 
   @ApiPropertyOptional({
     description: 'The email address of the user. Required when phone is not provided.',

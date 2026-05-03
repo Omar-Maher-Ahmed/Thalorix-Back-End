@@ -2,7 +2,7 @@ import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
-export class VerifyOtpDto {
+export class VerifySellerOtpDto {
   @ApiProperty({
     description: 'The email address of the seller',
     example: 'seller@example.com',

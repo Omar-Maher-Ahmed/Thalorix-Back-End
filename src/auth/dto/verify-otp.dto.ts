@@ -1,7 +1,7 @@
 import { IsEmail, IsString, Length, ValidateIf } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class VerifyOtpDto {
+export class VerifyAuthOtpDto {
   @ApiPropertyOptional({
     description: 'The email address of the user. Required when phone is not provided.',
     example: 'user@example.com',

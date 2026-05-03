@@ -3,7 +3,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { SellersService } from './sellers.service';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
-import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
+import { VerifyOtpDto } from '../otp/dto/otp.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 
 @ApiTags('Sellers')
 @Controller('seller')

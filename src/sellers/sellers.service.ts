@@ -13,7 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Seller, SellerDocument } from './schema/seller.schema';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
-import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
+import { VerifyOtpDto } from '../otp/dto/otp.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { OtpService } from '../otp/otp.service';
 import { OtpType } from '../otp/schema/otp.schema';
 
