@@ -144,10 +144,13 @@ export class OtpService {
     options: { userId?: string | Types.ObjectId; email?: string; phone?: string },
   ): Record<string, any> {
     const filter: Record<string, any> = { type };
-    if (options.userId)
+    if (options.email) {
+      filter.email = options.email.toLowerCase();
+    } else if (options.phone) {
+      filter.phone = options.phone;
+    } else if (options.userId) {
       filter.userId = new Types.ObjectId(options.userId.toString());
-    if (options.email) filter.email = options.email.toLowerCase();
-    if (options.phone) filter.phone = options.phone;
+    }
     return filter;
   }
 }

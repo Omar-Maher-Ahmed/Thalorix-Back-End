@@ -417,9 +417,9 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    const type = dto.email
-      ? OtpType.EMAIL_VERIFICATION
-      : OtpType.PHONE_VERIFICATION;
+    const type =
+      dto.type ||
+      (dto.email ? OtpType.EMAIL_VERIFICATION : OtpType.PHONE_VERIFICATION);
 
     await this.otpService.validateOtp(dto.code, type, {
       userId: user._id,

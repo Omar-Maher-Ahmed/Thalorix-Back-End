@@ -83,7 +83,10 @@ export class SellersService {
       throw new BadRequestException('Seller is already verified');
     }
 
-    await this.otpService.validateOtp(dto.code, OtpType.SELLER_VERIFICATION, {
+    await this.otpService.validateOtp(
+      dto.code,
+      dto.type || OtpType.SELLER_VERIFICATION,
+      {
       userId: seller._id,
       email: dto.email,
     });
