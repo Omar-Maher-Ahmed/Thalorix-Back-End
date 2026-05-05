@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
-import { MarketPlaceModule } from './market_place/market_place.module';
 import { TemplatesModule } from './templates/templates.module';
 import { ChatModule } from './chat/chat.module';
 import { CategoriesModule } from './categories/categories.module';
@@ -15,13 +14,19 @@ import { APP_GUARD } from '@nestjs/core';
 import { OrdersModule } from './orders/orders.module';
 import { OtpModule } from './otp/otp.module';
 import { MailerModule } from './services/mailer/mailer.module';
+import { AdminModule } from './admin/admin.module';
+import { CommunityModule } from './community/community.module';
+import { SellersModule } from './sellers/sellers.module';
+import { CloudinaryModule } from './services/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -34,9 +39,10 @@ import { MailerModule } from './services/mailer/mailer.module';
         retryDelay: 3000,
       }),
     }),
-    UsersModule,
+    AdminModule,
     AuthModule,
-    MarketPlaceModule,
+    UsersModule,
+    SellersModule,
     TemplatesModule,
     ChatModule,
     CategoriesModule,
@@ -44,8 +50,11 @@ import { MailerModule } from './services/mailer/mailer.module';
     OrdersModule,
     OtpModule,
     MailerModule,
+    CommunityModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+
 })
-export class AppModule { }
+export class AppModule {}

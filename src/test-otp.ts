@@ -15,7 +15,7 @@ async function bootstrap() {
     // 2. Resolve the OtpService
     const otpService = app.get(OtpService);
 
-    const testEmail = 'omaromarmaher2004@gmail.com';
+    const testEmail = 'omar1234@gmail.com';
     const testName = 'omar maher';
 
     logger.log(`📧 Requesting OTP for: ${testEmail}`);
@@ -29,8 +29,9 @@ async function bootstrap() {
 
     logger.log('✅ Success!');
     logger.log(`🔢 Generated Code : ${code}`);
-    logger.log('ℹ️  Check the terminal logs above to see the new Premium HTML structure.');
-
+    logger.log(
+      'ℹ️  Check the terminal logs above to see the new Premium HTML structure.',
+    );
   } catch (error) {
     logger.error(`❌ Test failed: ${error.message}`);
     if (error.response) {

@@ -16,6 +16,6 @@ import { Category, CategorySchema } from './schema/category.schema';
   ],
   controllers: [CategoriesController],
   providers: [CategoriesService],
-  exports: [CategoriesService], // 👈 مهم لو هتستخدمه فى موديل تانى
+  exports: [CategoriesService],
 })
 export class CategoriesModule {}

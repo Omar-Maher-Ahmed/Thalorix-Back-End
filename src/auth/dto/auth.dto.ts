@@ -2,13 +2,16 @@ import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, Matches, MaxLengt
 import { Match } from '../decorators/match.decorator'
 import { Transform } from 'class-transformer';
 import { BadRequestException } from '@nestjs/common';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class WebsiteLoginDto {
+    @ApiProperty({ description: 'The email address of the user', example: 'user@example.com' })
     @IsEmail({}, { message: 'Invalid email format' })
     @IsNotEmpty({ message: 'Email is required' })
     @Transform(({ value }) => value?.toLowerCase().trim())
     email: string;
 
+    @ApiProperty({ description: 'The password of the user', example: 'StrongP@ssw0rd', minLength: 8 })
     @IsString()
     @IsNotEmpty({ message: 'Password is required' })
     @MinLength(8, { message: 'Password must be at least 8 characters' })
@@ -16,10 +19,12 @@ export class WebsiteLoginDto {
 }
 
 export class MobileLoginDto {
+    @ApiProperty({ description: 'The email address of the user', example: 'user@example.com' })
     @IsEmail({}, { message: 'Invalid email format' })
     @IsNotEmpty({ message: 'Email is required' })
     email: string;
 
+    @ApiProperty({ description: 'The password of the user', example: 'StrongP@ssw0rd', minLength: 8 })
     @IsString()
     @IsNotEmpty({ message: 'Password is required' })
     @MinLength(8, { message: 'Password must be at least 8 characters' })
@@ -41,6 +46,7 @@ export class WebsiteSignUpDto {
         console.log('2. Cleaned value:', cleaned);
         return cleaned;
     })
+    @ApiProperty({ description: 'The name of the user', example: 'John Doe', minLength: 3, maxLength: 255 })
     @IsString({ message: 'Name must be a string' })
     @IsNotEmpty({ message: 'Name is required' })
     @MinLength(3, { message: 'Name is too short' })
@@ -55,6 +61,7 @@ export class WebsiteSignUpDto {
     // @Transform(({ value }) => value?.toLowerCase().trim())
     // email: string;
 
+    @ApiProperty({ description: 'The email address of the user', example: 'user@example.com' })
     @IsEmail(
     {
         allow_display_name: false,
@@ -67,15 +74,18 @@ export class WebsiteSignUpDto {
     @Transform(({ value }) => value?.toLowerCase().trim())
     email: string;
 
+    @ApiProperty({ description: 'The phone number of the user', example: '+1234567890' })
     @IsNotEmpty({ message: 'Phone number is required' })
     @IsPhoneNumber(undefined, { message: 'Invalid phone number format' })
     phone: string;
 
+    @ApiProperty({ description: 'The password of the user', example: 'StrongP@ssw0rd', minLength: 8 })
     @IsNotEmpty({ message: 'Password is required' })
     @IsString()
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
     password: string;
 
+    @ApiProperty({ description: 'The confirmation password of the user', example: 'StrongP@ssw0rd', minLength: 8 })
     @IsNotEmpty({ message: 'Password is required' })
     @IsString()
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
@@ -111,6 +121,7 @@ export class MobileSignUpDto {
 
         return cleaned;
     })
+    @ApiProperty({ description: 'The name of the user', example: 'John Doe', minLength: 3, maxLength: 255 })
     @IsString({ message: 'Name must be a string' })
     @IsNotEmpty({ message: 'Name is required' })
     @MinLength(3, { message: 'Name is too short' })
@@ -120,6 +131,7 @@ export class MobileSignUpDto {
     })
     name: string;
 
+    @ApiProperty({ description: 'The email address of the user', example: 'user@example.com' })
     @IsEmail(
     {
         allow_display_name: false,
@@ -132,15 +144,18 @@ export class MobileSignUpDto {
     @Transform(({ value }) => value?.toLowerCase().trim())
     email: string;
 
+    @ApiProperty({ description: 'The phone number of the user', example: '+1234567890' })
     @IsNotEmpty({ message: 'Phone number is required' })
     @IsPhoneNumber(undefined, { message: 'Invalid phone number format' })
     phone: string;
 
+    @ApiProperty({ description: 'The password of the user', example: 'StrongP@ssw0rd', minLength: 8 })
     @IsNotEmpty({ message: 'Password is required' })
     @IsString()
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
     password: string;
 
+    @ApiProperty({ description: 'The confirmation password of the user', example: 'StrongP@ssw0rd', minLength: 8 })
     @IsNotEmpty({ message: 'Password is required' })
     @IsString()
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
@@ -152,18 +167,4 @@ export class MobileSignUpDto {
     // role: string;
 
 
-}
-
-import { ValidateIf } from 'class-validator';
-
-export class ForgotPasswordDto {
-    @ValidateIf((o) => !o.phone)
-    @IsEmail({}, { message: 'Invalid email format' })
-    @IsNotEmpty({ message: 'Email is required when phone is not provided' })
-    email?: string;
-
-    @ValidateIf((o) => !o.email)
-    @IsString()
-    @IsNotEmpty({ message: 'Phone is required when email is not provided' })
-    phone?: string;
 }

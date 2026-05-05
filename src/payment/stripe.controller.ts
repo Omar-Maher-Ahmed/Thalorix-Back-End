@@ -11,11 +11,17 @@ import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { StripeService } from './stripe.service';
 import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiHeader } from '@nestjs/swagger';
 
+@ApiTags('Stripe')
 @Controller('stripe')
 export class StripeController {
     constructor(private stripeService: StripeService) { }
 
+    @ApiOperation({ summary: 'Create checkout session', description: 'Creates a new Stripe checkout session' })
+    @ApiBody({ type: CreateCheckoutSessionDto })
+    @ApiResponse({ status: 201, description: 'Checkout session created successfully' })
+    @ApiResponse({ status: 400, description: 'Bad Request' })
     @Post('create-checkout-session')
     async createCheckoutSession(@Body() createCheckoutDto: CreateCheckoutSessionDto) {
         const session = await this.stripeService.createCheckoutSession(
@@ -29,6 +35,9 @@ export class StripeController {
         };
     }
 
+    @ApiOperation({ summary: 'Handle Stripe Webhook', description: 'Handles webhook events from Stripe' })
+    @ApiHeader({ name: 'stripe-signature', description: 'Stripe webhook signature', required: true })
+    @ApiResponse({ status: 200, description: 'Webhook handled successfully' })
     @Post('webhook')
     @HttpCode(HttpStatus.OK)
     async handleWebhook(

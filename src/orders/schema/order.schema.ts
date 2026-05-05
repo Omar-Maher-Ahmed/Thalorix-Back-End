@@ -77,6 +77,12 @@ export class Order {
     default: PaymentStatus.UNPAID,
   })
   paymentStatus: PaymentStatus;
+
+  @Prop()
+  paymentMethod?: string;
+
+  @Prop()
+  gatewayRefId?: string;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

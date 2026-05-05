@@ -1,43 +1,33 @@
-import { IsEmail, IsNotEmpty, IsString, IsUUID, MinLength } from "class-validator";
-import { Match } from "../decorators/match.decorator";
+import { IsEmail, IsString } from 'class-validator';
+import { ValidateIf } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class PanelForgotPasswordDto {
+/**
+ * DTO for Step 1 of the forgot-password flow.
+ *
+ * The user provides either their email OR phone number.
+ * The service will look up the account and send a PASSWORD_RESET OTP.
+ *
+ * Used by: POST /auth/forgot-password
+ */
+export class ForgotPasswordDto {
+  @ApiPropertyOptional({
+    description:
+      'Email address of the account. Required when phone is not provided.',
+    example: 'user@example.com',
+    required: false,
+  })
+  @ValidateIf((o) => !o.phone)
+  @IsEmail({}, { message: 'Invalid email format' })
+  email?: string;
 
-    @IsEmail()
-    email: string;
-}
-
-export class PanelResetPasswordDTO {
-    @IsString()
-    @IsNotEmpty({ message: "Token is required" })
-    token: string;
-
-    @IsString()
-    @IsNotEmpty({ message: "Password is required" })
-    @MinLength(6, { message: "Password must be at least 6 characters" })
-    password: string;
-
-    @IsString()
-    @IsNotEmpty({ message: "Confirm password is required" })
-    @Match("password", { message: "Confirm password must match password" })
-    cPassword: string;
-}
-
-export class MobileForgotPasswordDto {
-    @IsString()
-    @IsNotEmpty()
-    contact_number: string;
-
-    @IsUUID()
-    vendorId: string;
-}
-
-export class MobileForgotPasswordVDto {
-    @IsUUID()
-    patientId: string;
-}
-
-export class MobileForgotPasswordCDto {
-    @IsUUID()
-    patientId: string;
+  @ApiPropertyOptional({
+    description:
+      'Phone number of the account. Required when email is not provided.',
+    example: '+1234567890',
+    required: false,
+  })
+  @ValidateIf((o) => !o.email)
+  @IsString({ message: 'Phone number must be a string' })
+  phone?: string;
 }

@@ -5,20 +5,29 @@ export type TemplateDocument = HydratedDocument<Template>;
 
 @Schema({ timestamps: true })
 export class Template {
-  @Prop({ required: true })
+  @Prop({ required: true, maxlength: 100 })
   title: string;
 
-  @Prop()
+  @Prop({ required: true })
   description: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, default: 0 })
   price: number;
 
+  @Prop({ required: true, maxlength: 255 })
+  fileUrl: string;
+
+  @Prop({ default: 'Pending' })
+  status: string;
+
+  @Prop({ required: false })
+  image?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  seller: Types.ObjectId;
+  developerId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
-  category: Types.ObjectId;
+  categoryId: Types.ObjectId;
 
   @Prop({ default: true })
   isActive: boolean;

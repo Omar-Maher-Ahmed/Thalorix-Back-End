@@ -25,7 +25,11 @@ import { join } from 'path';
           from: `"Thalorix" <${config.get('MAIL_FROM')}>`,
         },
         template: {
-          dir: join(__dirname, 'templates'),
+          dir: (() => {
+            const path1 = join(__dirname, 'templates');
+            const path2 = join(__dirname, '..', '..', '..', 'services', 'mailer', 'templates');
+            return require('fs').existsSync(path1) ? path1 : path2;
+          })(),
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,

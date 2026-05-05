@@ -5,6 +5,8 @@ export enum OtpType {
   EMAIL_VERIFICATION = 'email_verification',
   PHONE_VERIFICATION = 'phone_verification',
   PASSWORD_RESET = 'password_reset',
+  SELLER_VERIFICATION = 'seller_verification',
+  ADMIN_VERIFICATION = 'admin_verification',
 }
 
 @Schema({
@@ -12,9 +14,8 @@ export enum OtpType {
   collection: 'otps',
 })
 export class Otp extends Document {
-  // Stored as bcrypt hash — never plain text
   @Prop({ required: true })
-  hashedCode: string;
+  code: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   userId?: Types.ObjectId;

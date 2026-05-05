@@ -4,9 +4,13 @@ import { Template, TemplateSchema } from './schema/template.schema';
 import { Category, CategorySchema } from 'src/categories/schema/category.schema';
 import { TemplateService } from './templates.service';
 import { TemplateController } from './templates.controller';
+import { AuthModule } from '../auth/auth.module';
+import { CloudinaryModule } from '../services/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
+    AuthModule,
+    CloudinaryModule,
     MongooseModule.forFeature([
       { name: Template.name, schema: TemplateSchema },
       { name: Category.name, schema: CategorySchema },

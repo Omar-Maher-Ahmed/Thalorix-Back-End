@@ -47,7 +47,7 @@ export class OrdersService {
     }
 
     // ❌ منع شراء المنتج من نفسك
-    if (template.seller.toString() === userId) {
+    if (template.developerId.toString() === userId) {
       throw new BadRequestException('You cannot purchase your own template');
     }
 
@@ -69,7 +69,7 @@ export class OrdersService {
 
     const order = await this.orderModel.create({
       buyer: userId,
-      seller: template.seller,
+      seller: template.developerId,
       template: template._id,
       price,
       quantity,
@@ -194,5 +194,37 @@ export class OrdersService {
     await order.save();
 
     return order;
+  }
+
+  // 🗑️ Delete Order
+  async remove(orderId: string, userId: string, userRole: string) {
+    const order = await this.orderModel.findById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // 1. Admin can delete anything
+    if (userRole === 'admin') {
+      await this.orderModel.findByIdAndDelete(orderId);
+      return { message: 'Order deleted successfully by admin' };
+    }
+
+    // 2. Buyer can delete ONLY if it's PENDING & UNPAID
+    if (order.buyer.toString() === userId) {
+      if (
+        order.orderStatus !== OrderStatus.PENDING ||
+        order.paymentStatus !== PaymentStatus.UNPAID
+      ) {
+        throw new BadRequestException(
+          'Cannot delete order after it has been processed or paid',
+        );
+      }
+      await this.orderModel.findByIdAndDelete(orderId);
+      return { message: 'Order deleted successfully' };
+    }
+
+    // 3. Otherwise Forbidden
+    throw new ForbiddenException('You are not allowed to delete this order');
   }
 }
