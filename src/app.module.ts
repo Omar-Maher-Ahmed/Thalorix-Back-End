@@ -55,6 +55,5 @@ import { CloudinaryModule } from './services/cloudinary/cloudinary.module';
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
-
 })
 export class AppModule {}
