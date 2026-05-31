@@ -6,11 +6,13 @@ import { TemplateService } from './templates.service';
 import { TemplateController } from './templates.controller';
 import { AuthModule } from '../auth/auth.module';
 import { CloudinaryModule } from '../services/cloudinary/cloudinary.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
     AuthModule,
     CloudinaryModule,
+    UsersModule,
     MongooseModule.forFeature([
       { name: Template.name, schema: TemplateSchema },
       { name: Category.name, schema: CategorySchema },
