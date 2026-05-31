@@ -52,7 +52,7 @@ export class TemplateService {
         price: createDto.price,
         fileUrl: createDto.fileUrl,
         image: createDto.image,
-        developerId: new Types.ObjectId(user._id),
+        developerId: new Types.ObjectId(user.userId),
         categoryId: new Types.ObjectId(createDto.categoryId),
       });
 
@@ -114,7 +114,7 @@ export class TemplateService {
         throw new NotFoundException('Template not found');
       }
 
-      if (template.developerId.toString() !== user._id.toString()) {
+      if (template.developerId.toString() !== user.userId.toString()) {
         throw new ForbiddenException(
           'You are not allowed to update this template',
         );
@@ -166,7 +166,7 @@ export class TemplateService {
         throw new NotFoundException('Template not found');
       }
 
-      if (template.developerId.toString() !== user._id.toString()) {
+      if (template.developerId.toString() !== user.userId.toString()) {
         throw new ForbiddenException(
           'You are not allowed to delete this template',
         );
