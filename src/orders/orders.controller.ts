@@ -12,6 +12,7 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
+import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/enums/roles.enum';
 import { Role } from 'src/auth/decorators/roles.decorator';
@@ -20,7 +21,7 @@ import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } 
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
 @Controller('orders')
-@UseGuards(AccessTokenGuard)
+@UseGuards(JwtAuthGuard, AccessTokenGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
@@ -62,7 +63,7 @@ export class OrdersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  @UseGuards(AccessTokenGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Role(Roles.Seller)
   @Patch(':id/complete')
   completeOrder(@Param('id') id: string, @Request() req) {
@@ -76,7 +77,7 @@ export class OrdersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  @UseGuards(AccessTokenGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Role(Roles.Seller)
   @Patch(':id/refund')
   refundOrder(@Param('id') id: string, @Request() req) {
