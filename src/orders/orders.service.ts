@@ -136,17 +136,22 @@ export class OrdersService {
     return order;
   }
 
-  // 📦 Complete Order (Seller confirms delivery)
-  async completeOrder(orderId: string, sellerId: string) {
+  // 📦 Complete Order (Buyer or Seller confirms completion)
+  async completeOrder(orderId: string, userId: string) {
     const order = await this.orderModel.findById(orderId);
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
-    // 👮‍♂️ فقط البائع
-    if (order.seller.toString() !== sellerId) {
-      throw new ForbiddenException('Only seller can complete this order');
+    // Allow either buyer or seller of the order to complete it
+    if (
+      order.seller.toString() !== userId &&
+      order.buyer.toString() !== userId
+    ) {
+      throw new ForbiddenException(
+        'You are not authorized to complete this order',
+      );
     }
 
     // 🔒 منع القفز
@@ -210,16 +215,11 @@ export class OrdersService {
       return { message: 'Order deleted successfully by admin' };
     }
 
-    // 2. Buyer can delete ONLY if it's PENDING & UNPAID
-    if (order.buyer.toString() === userId) {
-      if (
-        order.orderStatus !== OrderStatus.PENDING ||
-        order.paymentStatus !== PaymentStatus.UNPAID
-      ) {
-        throw new BadRequestException(
-          'Cannot delete order after it has been processed or paid',
-        );
-      }
+    // 2. Buyer or Seller can delete the order
+    if (
+      order.buyer.toString() === userId ||
+      order.seller.toString() === userId
+    ) {
       await this.orderModel.findByIdAndDelete(orderId);
       return { message: 'Order deleted successfully' };
     }

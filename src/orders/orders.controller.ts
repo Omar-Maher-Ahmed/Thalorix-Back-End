@@ -56,15 +56,13 @@ export class OrdersController {
     return this.ordersService.findOne(id, req.user.userId);
   }
 
-  // ✅ Complete Order (Seller only)
-  @ApiOperation({ summary: 'Complete an order', description: 'Marks an order as complete (Seller only)' })
+  // ✅ Complete Order (Buyer or Seller)
+  @ApiOperation({ summary: 'Complete an order', description: 'Marks an order as complete (Buyer or Seller)' })
   @ApiParam({ name: 'id', description: 'Order ID', type: String })
   @ApiResponse({ status: 200, description: 'Order completed successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  @UseGuards(RolesGuard)
-  @Role(Roles.Seller)
   @Patch(':id/complete')
   completeOrder(@Param('id') id: string, @Request() req) {
     return this.ordersService.completeOrder(id, req.user.userId);
@@ -85,10 +83,9 @@ export class OrdersController {
   }
 
   // 🗑️ Delete Order
-  @ApiOperation({ summary: 'Delete an order', description: 'Deletes a pending order (Buyer) or any order (Admin)' })
+  @ApiOperation({ summary: 'Delete an order', description: 'Deletes an order (Buyer, Seller or Admin)' })
   @ApiParam({ name: 'id', description: 'Order ID', type: String })
   @ApiResponse({ status: 200, description: 'Order deleted successfully' })
-  @ApiResponse({ status: 400, description: 'Cannot delete processed order' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Order not found' })
