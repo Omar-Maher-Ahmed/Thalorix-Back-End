@@ -183,30 +183,15 @@ export class OrdersService {
     return order;
   }
 
-  // 🗑️ Delete Order
-  async remove(orderId: string, userId: string, userRole: string) {
+  // 🗑️ Delete Order (Any user can delete any order)
+  async remove(orderId: string) {
     const order = await this.orderModel.findById(orderId);
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
-    // 1. Admin can delete anything
-    if (userRole === 'admin') {
-      await this.orderModel.findByIdAndDelete(orderId);
-      return { message: 'Order deleted successfully by admin' };
-    }
-
-    // 2. Buyer or Seller can delete the order
-    if (
-      order.buyer.toString() === userId ||
-      order.seller.toString() === userId
-    ) {
-      await this.orderModel.findByIdAndDelete(orderId);
-      return { message: 'Order deleted successfully' };
-    }
-
-    // 3. Otherwise Forbidden
-    throw new ForbiddenException('You are not allowed to delete this order');
+    await this.orderModel.findByIdAndDelete(orderId);
+    return { message: 'Order deleted successfully' };
   }
 }

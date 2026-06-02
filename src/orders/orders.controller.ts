@@ -82,15 +82,15 @@ export class OrdersController {
     return this.ordersService.refundOrder(id, req.user.userId);
   }
 
-  // 🗑️ Delete Order
-  @ApiOperation({ summary: 'Delete an order', description: 'Deletes an order (Buyer, Seller or Admin)' })
+  // 🗑️ Delete Order (Any user)
+  @ApiOperation({ summary: 'Delete an order', description: 'Deletes an order (Any user)' })
   @ApiParam({ name: 'id', description: 'Order ID', type: String })
   @ApiResponse({ status: 200, description: 'Order deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Order not found' })
   @Delete(':id')
-  remove(@Param('id') id: string, @Request() req) {
-    return this.ordersService.remove(id, req.user.userId, req.user.role);
+  remove(@Param('id') id: string) {
+    return this.ordersService.remove(id);
   }
 }
