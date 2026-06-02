@@ -127,7 +127,7 @@ export class OtpService {
 
     this.logger.debug(`[verifyAndUpdate] Found OTP → id=${otp._id} code=${otp.code} inputCode=${inputCode} match=${otp.code === inputCode} type=${otp.type} isUsed=${otp.isUsed}`);
 
-    if (otp.code !== inputCode) {
+    if (String(otp.code).trim() !== String(inputCode).trim()) {
       this.logger.warn(`[verifyAndUpdate] Code mismatch for ${identifier}: DB=${otp.code} vs Input=${inputCode}`);
       throw new BadRequestException('Invalid OTP code');
     }
@@ -205,7 +205,7 @@ export class OtpService {
         throw new BadRequestException('Invalid or expired OTP');
       }
 
-      if (otp.code !== inputCode) {
+      if (String(otp.code).trim() !== String(inputCode).trim()) {
         this.logger.warn(`[validateOtp] Code mismatch for ${identifier}`);
         throw new BadRequestException('Invalid OTP code');
       }

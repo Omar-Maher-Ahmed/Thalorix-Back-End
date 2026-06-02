@@ -78,6 +78,7 @@ export class AdminService {
     await this.otpService.createOtp(OtpType.ADMIN_VERIFICATION, {
       userId: newAdmin._id,
       email: dto.email,
+      phone: dto.phone,
       name: dto.name,
     });
 

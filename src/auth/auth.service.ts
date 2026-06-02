@@ -322,6 +322,7 @@ export class AuthService {
     const otp = await this.otpService.createOtp(OtpType.EMAIL_VERIFICATION, {
       userId: newUser._id,
       email: dto.email,
+      phone: dto.phone,
       name: dto.name,
     });
 
@@ -377,6 +378,7 @@ export class AuthService {
     const otp = await this.otpService.createOtp(OtpType.EMAIL_VERIFICATION, {
       userId: newUser._id,
       email: dto.email,
+      phone: dto.phone,
       name: dto.name,
     });
 
