@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type SellerDocument = Seller & Document;
 
@@ -121,6 +121,9 @@ export class Seller {
 
   @Prop({ default: 0 })
   downloadsCount: number;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  followers: Types.ObjectId[];
 
   @Prop({ default: 0 })
   followersCount: number;

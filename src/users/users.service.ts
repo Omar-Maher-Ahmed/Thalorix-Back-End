@@ -11,6 +11,7 @@ import { QueryUserDto } from './dto/query-user.dto';
 import { AuditLogService } from '../audit/audit-log.service';
 
 import { FriendRequest } from '../friend-request/schema/friend-request.schema';
+import { Seller } from '../sellers/schema/seller.schema';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +20,8 @@ export class UsersService {
     private readonly userModel: Model<User>,
     @InjectModel(FriendRequest.name)
     private readonly friendRequestModel: Model<FriendRequest>,
+    @InjectModel(Seller.name)
+    private readonly sellerModel: Model<Seller>,
     private readonly auditLogService: AuditLogService,
   ) {}
   // ================= Find All =================
@@ -117,23 +120,55 @@ export class UsersService {
   async toggleFollow(requesterId: string, targetId: string) {
     if (requesterId === targetId) throw new BadRequestException('Cannot follow yourself');
     
-    const target = await this.userModel.findById(targetId);
-    if (!target) throw new NotFoundException('User not found');
+    let target: any = await this.userModel.findById(targetId);
+    let isSeller = false;
+    
+    if (!target) {
+      target = await this.sellerModel.findById(targetId);
+      if (!target) throw new NotFoundException('User or Seller not found');
+      isSeller = true;
+    }
     
     const requester = await this.userModel.findById(requesterId);
     if (!requester) {
-      throw new BadRequestException('Only standard users or sellers can follow stores');
+      throw new BadRequestException('Only standard users can follow profiles or stores');
     }
     
-    const isFollowing = requester.following.includes(new Types.ObjectId(targetId));
+    const isFollowing = requester.following.some(id => id.toString() === targetId);
     
     if (isFollowing) {
-      await this.userModel.findByIdAndUpdate(requesterId, { $pull: { following: targetId }, $inc: { followingCount: -1 } });
-      await this.userModel.findByIdAndUpdate(targetId, { $pull: { followers: requesterId }, $inc: { followersCount: -1 } });
+      await this.userModel.findByIdAndUpdate(requesterId, { 
+        $pull: { following: new Types.ObjectId(targetId) }, 
+        $inc: { followingCount: -1 } 
+      });
+      if (isSeller) {
+        await this.sellerModel.findByIdAndUpdate(targetId, { 
+          $pull: { followers: new Types.ObjectId(requesterId) }, 
+          $inc: { followersCount: -1 } 
+        });
+      } else {
+        await this.userModel.findByIdAndUpdate(targetId, { 
+          $pull: { followers: new Types.ObjectId(requesterId) }, 
+          $inc: { followersCount: -1 } 
+        });
+      }
       return { message: 'Unfollowed successfully' };
     } else {
-      await this.userModel.findByIdAndUpdate(requesterId, { $addToSet: { following: targetId }, $inc: { followingCount: 1 } });
-      await this.userModel.findByIdAndUpdate(targetId, { $addToSet: { followers: requesterId }, $inc: { followersCount: 1 } });
+      await this.userModel.findByIdAndUpdate(requesterId, { 
+        $addToSet: { following: new Types.ObjectId(targetId) }, 
+        $inc: { followingCount: 1 } 
+      });
+      if (isSeller) {
+        await this.sellerModel.findByIdAndUpdate(targetId, { 
+          $addToSet: { followers: new Types.ObjectId(requesterId) }, 
+          $inc: { followersCount: 1 } 
+        });
+      } else {
+        await this.userModel.findByIdAndUpdate(targetId, { 
+          $addToSet: { followers: new Types.ObjectId(requesterId) }, 
+          $inc: { followersCount: 1 } 
+        });
+      }
       return { message: 'Followed successfully' };
     }
   }
