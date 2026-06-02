@@ -45,7 +45,7 @@ export class AdminController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Get('my-profile')
   getMyProfile(@Request() req: any) {
-    return this.adminService.getMyProfile(req.user.sub);
+    return this.adminService.getMyProfile(req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard, AccessTokenGuard, RolesGuard)

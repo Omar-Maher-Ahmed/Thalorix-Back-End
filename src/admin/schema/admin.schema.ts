@@ -38,7 +38,7 @@ export class Admin extends Document {
   })
   role: Roles;
 
-  @Prop({ required: false })
+  @Prop({ required: false, select: false })
   refreshToken: string;
 
   @Prop({ default: false })

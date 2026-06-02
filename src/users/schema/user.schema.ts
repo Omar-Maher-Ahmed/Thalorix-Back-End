@@ -47,7 +47,7 @@ export class User extends Document {
   @Prop({ required: false })
   bio: string;
 
-  @Prop({ required: false })
+  @Prop({ required: false, select: false })
   refreshToken: string;
 
   @Prop({ default: false })
