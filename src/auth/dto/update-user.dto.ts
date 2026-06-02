@@ -35,4 +35,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   bio?: string;
+
+  @ApiPropertyOptional({ description: 'The new password for the user account', example: 'NewSecurePassword123' })
+  @IsOptional()
+  @IsString()
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  password?: string;
 }

@@ -8,6 +8,7 @@ import { Model, isValidObjectId } from 'mongoose';
 import { User } from './schema/user.schema';
 import { UpdateUserDto } from '../auth/dto';
 import { QueryUserDto } from './dto/query-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -37,8 +38,13 @@ export class UsersService {
 
   // ================= Update =================
   async update(id: string, dto: UpdateUserDto) {
+    const updateData: any = { ...dto };
+    if (dto.password) {
+      updateData.password = await bcrypt.hash(dto.password, 10);
+    }
+
     const user = await this.userModel
-      .findByIdAndUpdate(id, { $set: dto }, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true })
       .select('-password');
     if (!user) throw new NotFoundException('User not found');
     return {
