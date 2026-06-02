@@ -63,7 +63,7 @@ export class OrdersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  @UseGuards(RolesGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
   @Role(Roles.Seller)
   @Patch(':id/complete')
   completeOrder(@Param('id') id: string, @Request() req) {
@@ -77,7 +77,7 @@ export class OrdersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  @UseGuards(RolesGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
   @Role(Roles.Seller)
   @Patch(':id/refund')
   refundOrder(@Param('id') id: string, @Request() req) {

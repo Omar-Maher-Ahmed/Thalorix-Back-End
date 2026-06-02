@@ -48,6 +48,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       socket.join(`user:${userId}`);
 
       console.log(`User ${userId} connected — socket: ${socket.id}`);
+
+      // Broadcast online status to everyone in the chat namespace
+      this.server.emit('user_status', { userId, status: 'online' });
+
+      // Send the list of currently online user IDs to the newly connected user
+      socket.emit('online_users', Array.from(this.connectedUsers.keys()));
     } catch {
       socket.disconnect();
     }
@@ -58,6 +64,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (userId) {
       this.connectedUsers.delete(userId);
       console.log(`User ${userId} disconnected`);
+
+      // Broadcast offline status to everyone in the chat namespace
+      this.server.emit('user_status', { userId, status: 'offline' });
     }
   }
 
@@ -87,6 +96,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         conversation: message.conversation,
         createdAt: message['createdAt'],
         isRead: message.isRead,
+        attachmentUrl: message.attachmentUrl,
+        replyTo: message.replyTo,
       };
 
       // ابعت للمستقبل لو كان online
@@ -139,6 +150,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return payload.sub || payload.id;
     } catch {
       return null;
+    }
+  }
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('delete_message')
+  async handleDeleteMessage(
+    @MessageBody() { messageId, conversationId }: { messageId: string; conversationId: string },
+    @ConnectedSocket() socket: Socket,
+  ) {
+    try {
+      await this.chatService.deleteMessage(messageId, socket.data.userId);
+      this.server.to(conversationId).emit('message_deleted', { messageId, conversationId });
+      // We also send back to the socket just in case they are not in the room
+      socket.emit('message_deleted', { messageId, conversationId });
+    } catch (err) {
+      socket.emit('error', { message: err.message || 'Failed to delete message' });
     }
   }
 }

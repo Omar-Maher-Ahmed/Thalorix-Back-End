@@ -136,7 +136,7 @@ export class CategoriesService {
       const category = await this.categoryModel.findByIdAndUpdate(
         id,
         updateData,
-        { new: true },
+        { returnDocument: 'after', new: true },
       );
 
       if (!category) {

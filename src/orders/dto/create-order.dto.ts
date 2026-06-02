@@ -1,9 +1,9 @@
-import { IsMongoId, IsNotEmpty, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateOrderDto {
   @ApiProperty({ description: 'The ID of the template being ordered', example: '60d5ecb8b392d7001f8e8e30' })
-  @IsMongoId()
+  @IsString()
   @IsNotEmpty()
   templateId: string;
 

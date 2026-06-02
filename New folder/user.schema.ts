@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
 import { Roles } from 'src/auth/enums/roles.enum';
 
 @Schema({
@@ -15,9 +15,9 @@ export class User extends Document {
     trim: true,
     validate: {
       validator: function (v: string) {
-        return /^[\u0600-\u06FFa-zA-Z0-9\s._-]+$/.test(v);
+        return /^[\u0600-\u06FFa-zA-Z\s]+$/.test(v);
       },
-      message: 'Name must contain only letters, numbers, spaces, dots, underscores, and hyphens',
+      message: 'Name must contain only letters and spaces',
     },
   })
   name: string;
@@ -88,28 +88,6 @@ export class User extends Document {
     default: { facebook: '', instagram: '' }
   })
   socialLinks?: { facebook: string; instagram: string };
-
-  // --- Social Connections ---
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
-  followers: Types.ObjectId[];
-
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
-  following: Types.ObjectId[];
-
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
-  friends: Types.ObjectId[];
-
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
-  blockedUsers: Types.ObjectId[];
-
-  @Prop({ type: Number, default: 0 })
-  followersCount: number;
-
-  @Prop({ type: Number, default: 0 })
-  followingCount: number;
-
-  @Prop({ type: Number, default: 0 })
-  friendsCount: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

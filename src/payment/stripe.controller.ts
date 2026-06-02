@@ -12,11 +12,15 @@ import type { Request } from 'express';
 import { StripeService } from './stripe.service';
 import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiHeader } from '@nestjs/swagger';
+import { OrdersService } from '../orders/orders.service';
 
 @ApiTags('Stripe')
 @Controller('stripe')
 export class StripeController {
-    constructor(private stripeService: StripeService) { }
+    constructor(
+        private stripeService: StripeService,
+        private ordersService: OrdersService,
+    ) { }
 
     @ApiOperation({ summary: 'Create checkout session', description: 'Creates a new Stripe checkout session' })
     @ApiBody({ type: CreateCheckoutSessionDto })
@@ -27,6 +31,8 @@ export class StripeController {
         const session = await this.stripeService.createCheckoutSession(
             createCheckoutDto.items,
             createCheckoutDto.customerEmail,
+            createCheckoutDto.orderId,
+            createCheckoutDto.successUrl,
         );
 
         return {
@@ -78,12 +84,18 @@ export class StripeController {
     }
 
     private async handleCheckoutSessionCompleted(session: any) {
-        // هنا بقى الشغل الكبير
-        // 1. تخزين الـ transaction في الداتابيز
-        // 2. تحديث حالة الـ order
-        // 3. إرسال إيميل تأكيد
-        // 4. تفعيل الخدمة للمستخدم
-        console.log('Payment successful for session:', session.id);
+        const orderId = session.metadata?.orderId;
+        if (orderId) {
+            console.log(`Payment successful for order: ${orderId}`);
+            try {
+                await this.ordersService.markAsPaid(orderId);
+                console.log(`Order ${orderId} marked as PAID`);
+            } catch (error) {
+                console.error(`Error marking order ${orderId} as paid:`, error.message);
+            }
+        } else {
+            console.warn('Payment successful but no orderId found in metadata for session:', session.id);
+        }
         console.log('Customer email:', session.customer_details?.email);
         console.log('Amount:', session.amount_total / 100, session.currency);
     }

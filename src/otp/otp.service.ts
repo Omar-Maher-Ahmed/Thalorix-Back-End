@@ -45,13 +45,11 @@ export class OtpService {
 
     const code = randomInt(100000, 999999).toString();
 
-    // Print OTP to terminal for admin/seller (easy manual testing)
-    if (type === OtpType.ADMIN_VERIFICATION || type === OtpType.SELLER_VERIFICATION) {
-      this.logger.log(`\n==================================================`);
-      this.logger.log(`  🔑 OTP for [${type}] → ${identifier}`);
-      this.logger.log(`  📋 CODE: ${code}`);
-      this.logger.log(`==================================================\n`);
-    }
+    // Print OTP to terminal for all types (easy manual testing)
+    this.logger.log(`\n==================================================`);
+    this.logger.log(`  🔑 OTP for [${type}] → ${identifier}`);
+    this.logger.log(`  📋 CODE: ${code}`);
+    this.logger.log(`==================================================\n`);
 
     // Send notification FIRST — before saving to DB
     try {
@@ -62,7 +60,8 @@ export class OtpService {
       }
     } catch (error) {
       this.logger.error(`Failed to send OTP to ${identifier}: ${error.message}`);
-      throw new InternalServerErrorException('Failed to send OTP. Please try again.');
+      this.logger.warn(`Continuing despite notification failure (dev mode)`);
+      // throw new InternalServerErrorException('Failed to send OTP. Please try again.');
     }
 
     // Notification succeeded — invalidate old OTPs then persist the new one

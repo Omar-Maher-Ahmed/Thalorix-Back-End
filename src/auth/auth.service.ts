@@ -29,7 +29,7 @@ export class AuthService {
     private readonly userModel: Model<User>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
-  ) { }
+  ) {}
 
   // ================= Login Website =================
   async websiteLogin(dto: WebsiteLoginDto) {
@@ -38,7 +38,7 @@ export class AuthService {
 
       // Validate input
       if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       const email = dto.email.toLowerCase().trim();
@@ -49,7 +49,7 @@ export class AuthService {
         .select('+password +isVerified +isBlocked +isDeleted');
 
       if (!user) {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       // 2. Check if account is blocked/deleted
@@ -60,7 +60,7 @@ export class AuthService {
       // 3. Verify password
       const isMatch = await bcrypt.compare(dto.password, user.password);
       if (!isMatch) {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       // 4. Checking verification status from DB
@@ -133,19 +133,19 @@ export class AuthService {
   async mobileLogin(dto: MobileLoginDto) {
     try {
       if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       const email = dto.email.toLowerCase().trim();
       const user = await this.userModel.findOne({ email }).select('+password');
 
       if (!user) {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       const isMatch = await bcrypt.compare(dto.password, user.password);
       if (!isMatch) {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       if (!user.isVerified) {

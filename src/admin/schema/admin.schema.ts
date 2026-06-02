@@ -15,9 +15,9 @@ export class Admin extends Document {
     trim: true,
     validate: {
       validator: function (v: string) {
-        return /^[\u0600-\u06FFa-zA-Z\s]+$/.test(v);
+        return /^[\u0600-\u06FFa-zA-Z0-9\s._-]+$/.test(v);
       },
-      message: 'Name must contain only letters and spaces',
+      message: 'Name must contain only letters, numbers, spaces, dots, underscores, and hyphens',
     },
   })
   name: string;
@@ -37,6 +37,30 @@ export class Admin extends Document {
     default: Roles.Admin,
   })
   role: Roles;
+
+  @Prop()
+  avatarUrl?: string;
+
+  @Prop({ required: false })
+  bio?: string;
+
+  @Prop({
+    type: [{
+      name: String,
+      percent: Number
+    }],
+    default: []
+  })
+  expertise?: { name: string; percent: number }[];
+
+  @Prop({
+    type: {
+      facebook: String,
+      instagram: String
+    },
+    default: { facebook: '', instagram: '' }
+  })
+  socialLinks?: { facebook: string; instagram: string };
 
   @Prop({ required: false })
   refreshToken: string;

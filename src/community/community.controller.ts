@@ -7,8 +7,9 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 
 import { CommunityService } from './community.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -31,10 +32,11 @@ export class CommunityController {
 
   // 🟢 Get Feed
   @ApiOperation({ summary: 'Get community feed', description: 'Retrieves the community feed' })
+  @ApiQuery({ name: 'userId', required: false })
   @ApiResponse({ status: 200, description: 'Feed retrieved successfully' })
   @Get('feed')
-  getFeed() {
-    return this.service.getFeed();
+  getFeed(@Query('userId') userId?: string) {
+    return this.service.getFeed(userId);
   }
 
   // 🟢 Update Post
@@ -107,5 +109,17 @@ export class CommunityController {
   @Delete('comment/:id')
   deleteComment(@Param('id') id: string) {
     return this.service.deleteComment(id);
+  }
+
+  // 🟢 Toggle Like
+  @ApiOperation({ summary: 'Toggle like on a post' })
+  @ApiParam({ name: 'id', description: 'Post ID' })
+  @ApiBody({ schema: { type: 'object', properties: { userId: { type: 'string' } } } })
+  @Post('post/:id/like')
+  toggleLike(
+    @Param('id') postId: string,
+    @Body('userId') userId: string,
+  ) {
+    return this.service.toggleLike(postId, userId);
   }
 }

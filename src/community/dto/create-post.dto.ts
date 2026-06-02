@@ -14,4 +14,14 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   image?: string;
+
+  @ApiPropertyOptional({ description: 'The role of the user (User, Seller, Admin)', example: 'seller' })
+  @IsOptional()
+  @IsString()
+  userRole?: string;
+
+  @ApiPropertyOptional({ description: 'Optional link attached to the post', example: 'https://example.com' })
+  @IsOptional()
+  @IsString()
+  link?: string;
 }

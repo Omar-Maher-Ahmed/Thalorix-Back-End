@@ -19,10 +19,10 @@ import { CommunityModule } from './community/community.module';
 import { SellersModule } from './sellers/sellers.module';
 import { CloudinaryModule } from './services/cloudinary/cloudinary.module';
 import { AuditLogModule } from './audit/audit-log.module';
-import { FriendRequestModule } from './friend-request/friend-request.module';
 
 @Module({
   imports: [
+    AuditLogModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -37,8 +37,18 @@ import { FriendRequestModule } from './friend-request/friend-request.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
-        retryAttempts: 5,
+        retryAttempts: 10,
         retryDelay: 3000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 30000,
+        serverSelectionTimeoutMS: 8000,
+        heartbeatFrequencyMS: 10000,
+        connectionFactory: (connection) => {
+          connection.on('connected', () => console.log('🔥 MongoDB Connected Successfully!'));
+          connection.on('disconnected', () => console.warn('⚠️ MongoDB Disconnected! Retrying connection...'));
+          connection.on('error', (err) => console.error('❌ MongoDB connection error:', err));
+          return connection;
+        },
       }),
     }),
     AdminModule,
@@ -54,10 +64,9 @@ import { FriendRequestModule } from './friend-request/friend-request.module';
     MailerModule,
     CommunityModule,
     CloudinaryModule,
-    AuditLogModule,
-    FriendRequestModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+
 })
 export class AppModule {}

@@ -16,7 +16,6 @@ import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { Roles } from 'src/auth/enums/roles.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from 'src/auth/decorators/roles.decorator';
-import { AccessTokenGuard } from 'src/auth/guards/access-token.guard';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { LoginAdminDto } from './dto/login-admin.dto';
@@ -26,7 +25,7 @@ import { LoginAdminDto } from './dto/login-admin.dto';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  @UseGuards(JwtAuthGuard, AccessTokenGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Role(Roles.Admin)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all admins', description: 'Retrieves a list of all administrators' })
@@ -38,17 +37,17 @@ export class AdminController {
     return this.adminService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard, AccessTokenGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my profile', description: 'Retrieves the profile of the currently logged-in admin' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Get('my-profile')
   getMyProfile(@Request() req: any) {
-    return this.adminService.getMyProfile(req.user.sub);
+    return this.adminService.getMyProfile(req.user.userId);
   }
 
-  @UseGuards(JwtAuthGuard, AccessTokenGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Role(Roles.Admin)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an admin by ID', description: 'Retrieves details of a specific admin by their ID' })
@@ -63,7 +62,7 @@ export class AdminController {
     return this.adminService.findById(id);
   }
 
-  @UseGuards(JwtAuthGuard, AccessTokenGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Role(Roles.Admin)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an admin', description: 'Updates details of an existing admin' })
@@ -79,7 +78,7 @@ export class AdminController {
     return this.adminService.update(id, dto);
   }
 
-  @UseGuards(JwtAuthGuard, AccessTokenGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Role(Roles.Admin)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete an admin', description: 'Removes an admin from the system' })
