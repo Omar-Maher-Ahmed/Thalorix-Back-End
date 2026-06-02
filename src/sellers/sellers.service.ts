@@ -30,12 +30,14 @@ export class SellersService {
 
   // ================= Register Seller =================
   async registerSeller(dto: CreateSellerDto) {
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    
     const existingSeller = await this.sellerModel.findOne({
-      $or: [{ email: dto.email }, { phone: dto.phone }],
+      $or: [{ email: normalizedEmail }, { phone: dto.phone }],
     });
 
     if (existingSeller) {
-      if (existingSeller.email === dto.email) {
+      if (existingSeller.email === normalizedEmail) {
         throw new ConflictException('Seller with this email already exists');
       }
       if (existingSeller.phone === dto.phone) {
@@ -49,7 +51,7 @@ export class SellersService {
 
     const newSeller = await this.sellerModel.create({
       name: dto.name,
-      email: dto.email,
+      email: normalizedEmail,
       phone: dto.phone,
       password: hashedPassword,
       storeName: dto.storeName,
@@ -61,7 +63,7 @@ export class SellersService {
 
     await this.otpService.createOtp(OtpType.SELLER_VERIFICATION, {
       userId: newSeller._id,
-      email: dto.email,
+      email: normalizedEmail,
       name: dto.name,
     });
 
@@ -77,9 +79,18 @@ export class SellersService {
         throw new UnauthorizedException('Invalid email or password');
       }
 
-      const seller = await this.sellerModel
-        .findOne({ email: dto.email.toLowerCase().trim() })
+      const email = dto.email.trim().toLowerCase();
+
+      let seller = await this.sellerModel
+        .findOne({ email })
         .select('+password +currentAccessToken +refreshToken');
+
+      // Fallback for case-insensitive match for existing non-normalized emails
+      if (!seller) {
+        seller = await this.sellerModel
+          .findOne({ email: new RegExp(`^${email}$`, 'i') })
+          .select('+password +currentAccessToken +refreshToken');
+      }
 
       if (!seller) {
         throw new UnauthorizedException('Invalid email or password');

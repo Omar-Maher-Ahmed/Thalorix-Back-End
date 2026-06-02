@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Message, MessageDocument } from './schema/message.schema';
@@ -54,6 +54,9 @@ export class ChatService {
     page = 1,
     limit = 30,
   ) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new BadRequestException('Invalid conversation ID');
+    }
     const skip = (page - 1) * limit;
     return this.messageModel
       .find({ conversation: new Types.ObjectId(conversationId) })
@@ -75,6 +78,9 @@ export class ChatService {
   }
 
   async markMessagesAsRead(conversationId: string, userId: string) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new BadRequestException('Invalid conversation ID');
+    }
     await this.messageModel.updateMany(
       {
         conversation: new Types.ObjectId(conversationId),

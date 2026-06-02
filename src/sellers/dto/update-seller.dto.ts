@@ -5,6 +5,7 @@ import {
   MinLength,
   MaxLength,
   IsPhoneNumber,
+  IsNotEmpty,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
@@ -26,6 +27,8 @@ export class UpdateSellerDto {
   @ApiPropertyOptional({ description: 'The store name', example: 'Tech Haven' })
   @IsOptional()
   @IsString()
+  @IsNotEmpty({ message: 'Store name cannot be empty' })
+  @MaxLength(100, { message: 'Store name must not exceed 100 characters' })
   @Transform(({ value }) => value?.trim())
   storeName?: string;
 
