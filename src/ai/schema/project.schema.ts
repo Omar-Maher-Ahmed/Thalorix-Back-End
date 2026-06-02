@@ -73,6 +73,13 @@ export class Project {
   @Prop({ type: [String], default: [] })
   buildErrors: string[];
 
+  /**
+   * Project name returned by the AI Builder API after a successful build.
+   * Used as a path segment for /project/:sessionId/:projectName/* endpoints.
+   */
+  @Prop({ default: null })
+  projectName: string | null;
+
   /** Optional reference to the Thalorix user who owns this project. */
   @Prop({ default: null })
   userId: string | null;
