@@ -69,7 +69,7 @@ export class OtpService {
     try {
       await this.markExistingOtpsUsed(type, options);
 
-      await this.otpModel.create({
+      const newOtp = await this.otpModel.create({
         code,
         userId: options.userId
           ? new Types.ObjectId(options.userId.toString())
@@ -80,6 +80,10 @@ export class OtpService {
         expiresAt: new Date(Date.now() + OTP_TTL_MS),
         isUsed: false,
       });
+
+      // DEBUG: Verify the OTP was saved correctly by re-reading it
+      const verify = await this.otpModel.findById(newOtp._id).lean();
+      this.logger.debug(`[createOtp] SAVED OTP → id=${verify?._id} code=${verify?.code} email=${verify?.email} type=${verify?.type} isUsed=${verify?.isUsed} expiresAt=${verify?.expiresAt}`);
 
       this.logger.log(`OTP created and sent to ${identifier} for ${type}`);
       return code;
@@ -107,18 +111,24 @@ export class OtpService {
 
     this.logger.debug(`[verifyAndUpdate] identifier=${identifier} code=${inputCode}`);
 
+    // DEBUG: Show ALL OTPs for this identifier regardless of status
+    const allOtps = await this.otpModel.find(identifierFilter).sort({ createdAt: -1 }).lean();
+    this.logger.debug(`[verifyAndUpdate] ALL OTPs in DB for ${identifier}: ${JSON.stringify(allOtps.map(o => ({ id: o._id, code: o.code, type: o.type, isUsed: o.isUsed, expiresAt: o.expiresAt })))}`);
+
     // Find the most recent active OTP for this identifier (any type)
     const otp = await this.otpModel
       .findOne({ ...identifierFilter, isUsed: false, expiresAt: { $gt: new Date() } })
       .sort({ createdAt: -1 });
 
     if (!otp) {
-      this.logger.warn(`[verifyAndUpdate] No active OTP found for ${identifier}`);
+      this.logger.warn(`[verifyAndUpdate] No active OTP found for ${identifier}. Now=${new Date().toISOString()}. Filter=${JSON.stringify(identifierFilter)}`);
       throw new BadRequestException('Invalid or expired OTP');
     }
 
+    this.logger.debug(`[verifyAndUpdate] Found OTP → id=${otp._id} code=${otp.code} inputCode=${inputCode} match=${otp.code === inputCode} type=${otp.type} isUsed=${otp.isUsed}`);
+
     if (otp.code !== inputCode) {
-      this.logger.warn(`[verifyAndUpdate] Code mismatch for ${identifier}`);
+      this.logger.warn(`[verifyAndUpdate] Code mismatch for ${identifier}: DB=${otp.code} vs Input=${inputCode}`);
       throw new BadRequestException('Invalid OTP code');
     }
 
