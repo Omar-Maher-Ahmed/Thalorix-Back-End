@@ -18,6 +18,8 @@ import { AdminModule } from './admin/admin.module';
 import { CommunityModule } from './community/community.module';
 import { SellersModule } from './sellers/sellers.module';
 import { CloudinaryModule } from './services/cloudinary/cloudinary.module';
+import { AuditLogModule } from './audit/audit-log.module';
+import { FriendRequestModule } from './friend-request/friend-request.module';
 
 @Module({
   imports: [
@@ -52,6 +54,8 @@ import { CloudinaryModule } from './services/cloudinary/cloudinary.module';
     MailerModule,
     CommunityModule,
     CloudinaryModule,
+    AuditLogModule,
+    FriendRequestModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

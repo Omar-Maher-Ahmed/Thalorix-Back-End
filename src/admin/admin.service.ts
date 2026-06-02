@@ -23,7 +23,7 @@ export class AdminService {
     private readonly adminModel: Model<Admin>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
-  ) {}
+  ) { }
 
   // ================= Find All =================
   async findAll(): Promise<Admin[]> {
@@ -97,19 +97,19 @@ export class AdminService {
   async Login(dto: LoginAdminDto) {
     try {
       if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException('Invalid email or password');
       }
 
       const email = dto.email.toLowerCase().trim();
       const user = await this.adminModel.findOne({ email }).select('+password');
 
       if (!user) {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException('Invalid email or password');
       }
 
       const isMatch = await bcrypt.compare(dto.password, user.password);
       if (!isMatch) {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException('Invalid email or password');
       }
 
       if (!user.isVerified) {

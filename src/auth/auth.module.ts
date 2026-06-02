@@ -35,6 +35,6 @@ import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, AccessTokenGuard],
-  exports: [AccessTokenGuard],
+  exports: [AccessTokenGuard, MongooseModule],
 })
 export class AuthModule {}

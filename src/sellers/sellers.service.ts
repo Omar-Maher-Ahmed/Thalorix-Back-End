@@ -26,9 +26,7 @@ export class SellersService {
     private readonly sellerModel: Model<SellerDocument>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
-  ) {}
-
-
+  ) { }
 
   // ================= Register Seller =================
   async registerSeller(dto: CreateSellerDto) {
@@ -74,63 +72,134 @@ export class SellersService {
 
   // ================= Login Seller =================
   async loginSeller(dto: LoginSellerDto) {
-    const seller = await this.sellerModel
-      .findOne({ email: dto.email })
-      .select('+password +currentAccessToken +refreshToken');
+    try {
+      if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
+        throw new UnauthorizedException('Invalid email or password');
+      }
 
-    if (!seller) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+      const seller = await this.sellerModel
+        .findOne({ email: dto.email.toLowerCase().trim() })
+        .select('+password +currentAccessToken +refreshToken');
 
-    if (!seller.isActive) {
-      throw new UnauthorizedException('Seller account is deactivated');
-    }
+      if (!seller) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
 
-    const isMatch = await bcrypt.compare(dto.password, seller.password);
-    if (!isMatch) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+      if (!seller.isActive) {
+        throw new UnauthorizedException('Seller account is deactivated');
+      }
 
-    if (!seller.isVerified) {
-      throw new UnauthorizedException(
-        'Seller account is not verified. Please verify your OTP first.',
-      );
-    }
+      const isMatch = await bcrypt.compare(dto.password, seller.password);
+      if (!isMatch) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
 
-    const payload = {
-      sub: seller._id.toString(),
-      email: seller.email,
-      role: seller.role,
-      jti: crypto.randomBytes(16).toString('hex'),
-    };
+      if (!seller.isVerified) {
+        throw new UnauthorizedException(
+          'Seller account is not verified. Please verify your OTP first.',
+        );
+      }
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '15m',
-      secret: process.env.JWT_SECRET,
-    });
-
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: '7d',
-      secret: process.env.JWT_SECRET,
-    });
-
-    seller.refreshToken = await bcrypt.hash(refreshToken, 10);
-    seller.currentAccessToken = await bcrypt.hash(accessToken, 10);
-    seller.lastLogin = new Date();
-    await seller.save();
-
-    return {
-      message: 'Seller logged in successfully',
-      accessToken,
-      refreshToken,
-      seller: {
-        id: seller._id,
-        name: seller.name,
+      const payload = {
+        sub: seller._id.toString(),
         email: seller.email,
-        storeName: seller.storeName,
         role: seller.role,
-      },
-    };
+        jti: crypto.randomBytes(16).toString('hex'),
+      };
+
+      const accessToken = this.jwtService.sign(payload, {
+        expiresIn: '15m',
+        secret: process.env.JWT_SECRET,
+      });
+
+      const refreshToken = this.jwtService.sign(payload, {
+        expiresIn: '7d',
+        secret: process.env.JWT_SECRET,
+      });
+
+      seller.refreshToken = await bcrypt.hash(refreshToken, 10);
+      seller.currentAccessToken = await bcrypt.hash(accessToken, 10);
+      seller.lastLogin = new Date();
+      await seller.save();
+
+      return {
+        message: 'Seller logged in successfully',
+        accessToken,
+        refreshToken,
+        seller: {
+          id: seller._id,
+          name: seller.name,
+          email: seller.email,
+          storeName: seller.storeName,
+          role: seller.role,
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // ================= Refresh Seller Access Token =================
+  async refreshSellerToken(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      const seller = await this.sellerModel
+        .findById(payload.sub)
+        .select('+refreshToken +currentAccessToken');
+
+      if (!seller || !seller.refreshToken) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const isValid = await bcrypt.compare(refreshToken, seller.refreshToken);
+      if (!isValid) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      if (!seller.isActive) {
+        throw new UnauthorizedException('Seller account is deactivated');
+      }
+
+      const newPayload = {
+        sub: seller._id.toString(),
+        email: seller.email,
+        role: seller.role,
+        jti: crypto.randomBytes(16).toString('hex'),
+      };
+
+      const newAccessToken = this.jwtService.sign(newPayload, {
+        expiresIn: '15m',
+        secret: process.env.JWT_SECRET,
+      });
+
+      const newRefreshToken = this.jwtService.sign(newPayload, {
+        expiresIn: '7d',
+        secret: process.env.JWT_SECRET,
+      });
+
+      seller.refreshToken = await bcrypt.hash(newRefreshToken, 10);
+      seller.currentAccessToken = await bcrypt.hash(newAccessToken, 10);
+      await seller.save();
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
+
+  // ================= Logout Seller =================
+  async logoutSeller(sellerId: string) {
+    await this.sellerModel.updateOne(
+      { _id: sellerId },
+      { $unset: { currentAccessToken: 1, refreshToken: 1 } },
+    );
+    return { message: 'Logged out successfully' };
   }
 
   // ================= Get All Sellers =================

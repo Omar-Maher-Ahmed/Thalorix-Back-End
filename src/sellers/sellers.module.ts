@@ -3,13 +3,19 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Seller, SellerSchema } from './schema/seller.schema';
+import { Review, ReviewSchema } from './schema/review.schema';
 import { SellersService } from './sellers.service';
 import { SellersController } from './sellers.controller';
 import { OtpModule } from '../otp/otp.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Seller.name, schema: SellerSchema }]),
+    MongooseModule.forFeature([
+      { name: Seller.name, schema: SellerSchema },
+      { name: Review.name, schema: ReviewSchema },
+    ]),
+    AuthModule,
     OtpModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
