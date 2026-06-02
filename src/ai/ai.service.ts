@@ -167,8 +167,10 @@ export class AiBuilderService {
         ...(stack ? { stack } : {}),
       };
 
-      // RunPod wraps the payload under `input`
-      const body = this.mode === 'runpod' ? { input: payload } : payload;
+      // RunPod wraps the payload under `input` and accepts a `policy`
+      const body = this.mode === 'runpod'
+        ? { input: payload, policy: { ttl: 3600000 } }
+        : payload;
 
       const { data } = await this.http.post<ChatApiResponse>(chatEndpoint, body);
       chatData = this.mode === 'runpod' ? (data as any)?.output ?? data : data;
@@ -179,8 +181,8 @@ export class AiBuilderService {
     }
 
     // Detect async job (either reply_type or job_id present)
-    const jobId     = chatData.job_id;
-    const sessionId = chatData.session_id;
+    const jobId     = this.mode === 'runpod' ? (chatData as any).id : chatData.job_id;
+    const sessionId = this.mode === 'runpod' ? ((chatData as any).output?.session_id ?? (chatData as any).id) : chatData.session_id;
 
     if (!sessionId) {
       throw new InternalServerErrorException('AI Builder did not return a session_id');
@@ -231,7 +233,7 @@ export class AiBuilderService {
       }
 
       // Normalise status across both modes
-      const rawStatus = jobData.status ?? (jobData as any).state ?? '';
+      const rawStatus = (jobData.status ?? (jobData as any).state ?? '').toLowerCase();
       this.logger.debug(`Poll [${attempts}/${MAX_POLL_ATTEMPTS}] job=${jobId} status=${rawStatus}`);
 
       // ── Terminal: failed / error / cancelled ─────────────────────────────────
@@ -258,14 +260,20 @@ export class AiBuilderService {
           language: f.language ?? '',
         }));
 
-        await this.projectModel.findByIdAndUpdate(projectId, {
+        const updatePayload: any = {
           status:      ProjectStatus.COMPLETED,
           previewUrl:  result.preview_url ?? null,
           projectName: result.project_name ?? null,
           files,
           jobId,
           buildErrors: [],
-        });
+        };
+
+        if (result.session_id) {
+          updatePayload.sessionId = result.session_id;
+        }
+
+        await this.projectModel.findByIdAndUpdate(projectId, updatePayload);
 
         this.logger.log(`Project ${projectId} completed. preview=${result.preview_url ?? 'none'}`);
         return;
@@ -401,7 +409,9 @@ export class AiBuilderService {
         session_id: existing.sessionId,
         output_preference: (dto as any).output_preference,
       };
-      const body = this.mode === 'runpod' ? { input: payload } : payload;
+      const body = this.mode === 'runpod'
+        ? { input: payload, policy: { ttl: 3600000 } }
+        : payload;
 
       const { data } = await this.http.post<ChatApiResponse>(chatEndpoint, body);
       chatData = this.mode === 'runpod' ? (data as any)?.output ?? data : data;
@@ -413,16 +423,16 @@ export class AiBuilderService {
 
     // Reset document to building state
     existing.status      = ProjectStatus.BUILDING;
-    existing.jobId       = chatData.job_id ?? null;
+    existing.jobId       = this.mode === 'runpod' ? (chatData as any).id : (chatData.job_id ?? null);
     existing.previewUrl  = null;
     existing.files       = [];
     existing.buildErrors = [];
     await existing.save();
 
-    this.logger.log(`Project ${projectId} edit started | new job=${chatData.job_id}`);
+    this.logger.log(`Project ${projectId} edit started | new job=${existing.jobId}`);
 
-    if (chatData.job_id) {
-      this.pollAndFinalize(projectId, chatData.job_id).catch((err) =>
+    if (existing.jobId) {
+      this.pollAndFinalize(projectId, existing.jobId).catch((err) =>
         this.logger.error(`Background polling (edit) failed for project ${projectId}: ${err.message}`),
       );
     }
