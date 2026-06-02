@@ -56,16 +56,16 @@ export class OrdersController {
     return this.ordersService.findOne(id, req.user.userId);
   }
 
-  // ✅ Complete Order (Buyer or Seller)
-  @ApiOperation({ summary: 'Complete an order', description: 'Marks an order as complete (Buyer or Seller)' })
+  // ✅ Complete Order (Any user)
+  @ApiOperation({ summary: 'Complete an order', description: 'Marks an order as complete (Any user)' })
   @ApiParam({ name: 'id', description: 'Order ID', type: String })
   @ApiResponse({ status: 200, description: 'Order completed successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Order not found' })
   @Patch(':id/complete')
-  completeOrder(@Param('id') id: string, @Request() req) {
-    return this.ordersService.completeOrder(id, req.user.userId);
+  completeOrder(@Param('id') id: string) {
+    return this.ordersService.completeOrder(id);
   }
 
   // 💸 Refund Order (Seller only)

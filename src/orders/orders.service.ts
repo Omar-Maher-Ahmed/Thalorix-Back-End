@@ -136,30 +136,12 @@ export class OrdersService {
     return order;
   }
 
-  // 📦 Complete Order (Buyer or Seller confirms completion)
-  async completeOrder(orderId: string, userId: string) {
+  // 📦 Complete Order (Any user can complete any order)
+  async completeOrder(orderId: string) {
     const order = await this.orderModel.findById(orderId);
 
     if (!order) {
       throw new NotFoundException('Order not found');
-    }
-
-    // Allow either buyer or seller of the order to complete it
-    if (
-      order.seller.toString() !== userId &&
-      order.buyer.toString() !== userId
-    ) {
-      throw new ForbiddenException(
-        'You are not authorized to complete this order',
-      );
-    }
-
-    // 🔒 منع القفز
-    if (
-      order.orderStatus !== OrderStatus.PROCESSING ||
-      order.paymentStatus !== PaymentStatus.PAID
-    ) {
-      throw new BadRequestException('Order is not ready to be completed');
     }
 
     order.orderStatus = OrderStatus.COMPLETED;
