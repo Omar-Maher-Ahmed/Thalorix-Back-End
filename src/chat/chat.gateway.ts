@@ -100,10 +100,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         replyTo: message.replyTo,
       };
 
-      // ابعت للمستقبل لو كان online
-      this.server.to(`user:${dto.receiverId}`).emit('receive_message', payload);
+      // ابعت للمستقبل وللمرسل (عشان لو فاتح كذا تابة يتزامنوا لحظياً)
+      this.server.to(`user:${dto.receiverId}`).to(`user:${senderId}`).emit('receive_message', payload);
 
-      // confirm للمرسل
+      // confirm للمرسل الأساسي
       socket.emit('message_sent', payload);
     } catch (err) {
       socket.emit('error', { message: 'Failed to send message' });
@@ -160,10 +160,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() socket: Socket,
   ) {
     try {
-      await this.chatService.deleteMessage(messageId, socket.data.userId);
-      this.server.to(conversationId).emit('message_deleted', { messageId, conversationId });
-      // We also send back to the socket just in case they are not in the room
-      socket.emit('message_deleted', { messageId, conversationId });
+      const message = await this.chatService.deleteMessage(messageId, socket.data.userId);
+      const rId = message.receiver.toString();
+      const sId = message.sender.toString();
+      
+      // ابعت للمستقبل وللمرسل لحظياً في الغرف الخاصة بهم
+      this.server.to(`user:${rId}`).to(`user:${sId}`).emit('message_deleted', { messageId, conversationId });
     } catch (err) {
       socket.emit('error', { message: err.message || 'Failed to delete message' });
     }

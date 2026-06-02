@@ -1,16 +1,72 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, Types, isValidObjectId } from 'mongoose';
 import { Message, MessageDocument } from './schema/message.schema';
 import { Conversation, ConversationDocument } from './schema/conversation.schema';
 import { SendMessageDto } from './dto/send-message.dto';
+import { User } from '../users/schema/user.schema';
+import { Seller } from '../sellers/schema/seller.schema';
+import { Admin } from '../admin/schema/admin.schema';
 
 @Injectable()
 export class ChatService {
   constructor(
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
     @InjectModel(Conversation.name) private conversationModel: Model<ConversationDocument>,
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Seller.name) private sellerModel: Model<Seller>,
+    @InjectModel(Admin.name) private adminModel: Model<Admin>,
   ) {}
+
+  async getUserOrSellerOrAdmin(id: string | Types.ObjectId) {
+    if (!id) return null;
+    const userId = id.toString();
+    
+    // Check User
+    const userAccount = await this.userModel.findById(userId).select('name avatarUrl role').lean();
+    if (userAccount) return { _id: userAccount._id, name: userAccount.name, avatar: userAccount.avatarUrl, role: userAccount.role || 'user' };
+    
+    // Check Seller
+    const sellerAccount = await this.sellerModel.findById(userId).select('name logo role storeName').lean();
+    if (sellerAccount) {
+      return { 
+        _id: sellerAccount._id,
+        name: sellerAccount.storeName || sellerAccount.name, 
+        avatar: sellerAccount.logo,
+        role: 'seller'
+      };
+    }
+    
+    // Check Admin
+    const adminAccount = await this.adminModel.findById(userId).select('name avatarUrl role').lean();
+    if (adminAccount) return { _id: adminAccount._id, name: adminAccount.name, avatar: adminAccount.avatarUrl, role: adminAccount.role || 'admin' };
+    
+    return { _id: id, name: 'Unknown User', avatar: null, role: 'user' };
+  }
+
+  async populateMessage(msg: any) {
+    if (!msg) return null;
+    const sender = await this.getUserOrSellerOrAdmin(msg.sender);
+    const receiver = await this.getUserOrSellerOrAdmin(msg.receiver);
+    
+    let replyTo = null;
+    if (msg.replyTo) {
+      let replyMsg = msg.replyTo;
+      if (isValidObjectId(replyMsg) || typeof replyMsg === 'string') {
+        replyMsg = await this.messageModel.findById(replyMsg).lean();
+      }
+      if (replyMsg) {
+        replyTo = await this.populateMessage(replyMsg);
+      }
+    }
+
+    return {
+      ...msg,
+      sender,
+      receiver,
+      replyTo,
+    };
+  }
 
   async getOrCreateConversation(userId1: string, userId2: string): Promise<ConversationDocument> {
     const u1 = new Types.ObjectId(userId1);
@@ -39,7 +95,7 @@ export class ChatService {
     return { conversationId: conversation._id };
   }
 
-  async saveMessage(senderId: string, dto: SendMessageDto): Promise<MessageDocument> {
+  async saveMessage(senderId: string, dto: SendMessageDto): Promise<any> {
     const conversation = await this.getOrCreateConversation(senderId, dto.receiverId);
 
     const message = await this.messageModel.create({
@@ -57,7 +113,8 @@ export class ChatService {
       $inc: { unreadCount: 1 },
     });
 
-    return message.populate(['sender', 'receiver', 'replyTo']);
+    const leanMessage = await this.messageModel.findById(message._id).lean();
+    return this.populateMessage(leanMessage);
   }
 
   async getConversationMessages(
@@ -66,27 +123,46 @@ export class ChatService {
     limit = 30,
   ) {
     const skip = (page - 1) * limit;
-    return this.messageModel
+    const messages = await this.messageModel
       .find({ conversation: new Types.ObjectId(conversationId) })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('sender', 'name avatar')
-      .populate('receiver', 'name avatar')
-      .populate('replyTo', 'content sender')
       .lean();
+
+    return Promise.all(messages.map((msg) => this.populateMessage(msg)));
   }
 
   async getUserConversations(userId: string) {
-    return this.conversationModel
+    const conversations = await this.conversationModel
       .find({
         participants: new Types.ObjectId(userId),
         deletedBy: { $ne: new Types.ObjectId(userId) }
       })
-      .populate('participants', 'name avatar')
       .populate('lastMessage')
       .sort({ updatedAt: -1 })
       .lean();
+
+    const populatedConversations = await Promise.all(
+      conversations.map(async (conv) => {
+        const participants = await Promise.all(
+          conv.participants.map((p) => this.getUserOrSellerOrAdmin(p))
+        );
+
+        let lastMessage = null;
+        if (conv.lastMessage) {
+          lastMessage = await this.populateMessage(conv.lastMessage);
+        }
+
+        return {
+          ...conv,
+          participants,
+          lastMessage,
+        };
+      })
+    );
+
+    return populatedConversations;
   }
 
   async markMessagesAsRead(conversationId: string, userId: string) {
@@ -147,15 +223,15 @@ export class ChatService {
   }
 
   async searchMessages(conversationId: string, query: string, userId: string) {
-    return this.messageModel
+    const messages = await this.messageModel
       .find({
         conversation: new Types.ObjectId(conversationId),
         content: { $regex: query, $options: 'i' },
         isDeleted: false
       })
       .sort({ createdAt: -1 })
-      .populate('sender', 'name avatar')
-      .populate('receiver', 'name avatar')
       .lean();
+
+    return Promise.all(messages.map((msg) => this.populateMessage(msg)));
   }
 }
