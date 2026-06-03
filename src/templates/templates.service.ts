@@ -100,6 +100,53 @@ export class TemplateService {
     }
   }
 
+  async getTemplateStats(id: string) {
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid template ID');
+      }
+
+      const result = await this.templateModel.aggregate([
+        { $match: { _id: new Types.ObjectId(id) } },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'developerId',
+            foreignField: '_id',
+            as: 'developer',
+          },
+        },
+        {
+          $lookup: {
+            from: 'orders',
+            localField: '_id',
+            foreignField: 'template',
+            as: 'orders',
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            templateId: '$_id',
+            templateName: '$title',
+            userEmail: { $arrayElemAt: ['$developer.email', 0] },
+            sendCount: { $size: '$orders' },
+            createdAt: 1,
+          },
+        },
+      ]);
+
+      if (!result || result.length === 0) {
+        throw new NotFoundException('Template not found');
+      }
+
+      return result[0];
+    } catch (error) {
+      this.logger.error(`Template Stats Error: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
   // ── Update ─────────────────────────────────────────────────────────────────
 
   async update(id: string, dto: UpdateTemplateDto, user: any) {

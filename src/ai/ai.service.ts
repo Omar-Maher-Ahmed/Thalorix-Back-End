@@ -440,6 +440,64 @@ export class AiBuilderService {
     return existing;
   }
 
+  // ── 7. Reporting ────────────────────────────────────────────────────────────
+
+  async getDeployedProjects(): Promise<any[]> {
+    try {
+      const results = await this.projectModel.aggregate([
+        { $match: { status: ProjectStatus.COMPLETED } },
+        {
+          $addFields: {
+            userIdObj: {
+              $cond: {
+                if: { $and: [{ $ne: ['$userId', null] }, { $ne: ['$userId', ''] }] },
+                then: { $toObjectId: '$userId' },
+                else: null,
+              },
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userIdObj',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        {
+          $unwind: { path: '$user', preserveNullAndEmptyArrays: true },
+        },
+        {
+          $project: {
+            _id: 0,
+            projectId: '$_id',
+            projectName: '$projectName',
+            templateName: { $literal: 'N/A' }, // Auto-adapted: Templates are not linked to AI projects
+            deploymentStatus: '$status',
+            deployedAt: '$createdAt',
+            aiModelId: '$stack', // Auto-adapted: using stack as the model identifier
+            user: {
+              $cond: {
+                if: { $gt: ['$user', null] },
+                then: {
+                  id: '$user._id',
+                  name: '$user.name',
+                  email: '$user.email',
+                },
+                else: null,
+              },
+            },
+          },
+        },
+      ]);
+      return results;
+    } catch (error) {
+      this.logger.error(`getDeployedProjects error: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to retrieve deployed projects: ${error.message}`);
+    }
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   private sleep(ms: number): Promise<void> {

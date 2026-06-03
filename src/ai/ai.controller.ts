@@ -28,6 +28,7 @@ import { Response } from 'express';
 import { AiBuilderService } from './ai.service';
 import { CreateProjectDto } from './dto/create-ai.dto';
 import { EditProjectDto } from './dto/edit-project.dto';
+import { DeployedProjectResponseDto } from './dto/deployed-project-response.dto';
 import {
   OutputAdapter,
   successResponse,
@@ -163,6 +164,24 @@ export class AiBuilderController {
       return successResponse(result, 'File uploaded successfully');
     } catch (err) {
       this.logger.error(`uploadFile error: ${err.message}`);
+      return errorResponse(err.message);
+    }
+  }
+
+  // ── GET /ai/projects/deployed ────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary: 'Get all successfully deployed AI projects',
+    description: 'Returns a list of all AI projects that have been successfully deployed/generated, including user information.',
+  })
+  @ApiResponse({ status: 200, description: 'Deployed projects retrieved successfully', type: [DeployedProjectResponseDto] })
+  @Get('projects/deployed')
+  async getDeployedProjects(): Promise<OutputAdapter> {
+    try {
+      const projects = await this.aiBuilderService.getDeployedProjects();
+      return successResponse(projects, 'Deployed projects retrieved successfully');
+    } catch (err) {
+      this.logger.error(`getDeployedProjects error: ${err.message}`);
       return errorResponse(err.message);
     }
   }

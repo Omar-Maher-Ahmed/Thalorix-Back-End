@@ -25,6 +25,7 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
+import { TemplateStatsResponseDto } from './dto/template-stats-response.dto';
 import { TemplateService } from './templates.service';
 import { CloudinaryService } from '../services/cloudinary/cloudinary.service';
 import { Types } from 'mongoose';
@@ -133,6 +134,23 @@ export class TemplateController {
       throw new BadRequestException('Invalid template ID');
     }
     return this.templateService.findOne(id);
+  }
+
+  // ── GET /templates/:id/stats ────────────────────────────────────────────────
+  @ApiOperation({
+    summary: 'Get template stats by ID',
+    description: 'Retrieves statistics for a single template including send/deployment count.',
+  })
+  @ApiParam({ name: 'id', description: 'Template ID', type: String })
+  @ApiResponse({ status: 200, description: 'Template stats retrieved successfully', type: TemplateStatsResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid ID format' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
+  @Get(':id/stats')
+  getStats(@Param('id') id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid template ID');
+    }
+    return this.templateService.getTemplateStats(id);
   }
 
   // ── PATCH /templates/:id ───────────────────────────────────────────────────
