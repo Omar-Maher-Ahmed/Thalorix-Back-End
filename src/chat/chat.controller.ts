@@ -37,13 +37,19 @@ export class ChatController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Conversation not found' })
   @Get('conversations/:conversationId/messages')
-  getMessages(
-    @Param('conversationId') conversationId: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 30,
-  ) {
-    return this.chatService.getConversationMessages(conversationId, +page, +limit);
-  }
+getMessages(
+  @Param('conversationId') conversationId: string,
+  @Query('page') page = 1,
+  @Query('limit') limit = 30,
+  @Req() req,
+) {
+  return this.chatService.getConversationMessages(
+    conversationId,
+    req.user.userId,
+    +page,
+    +limit,
+  );
+}
 
   @ApiOperation({ summary: 'Search messages in a conversation', description: 'Searches for a specific keyword in a conversation' })
   @ApiParam({ name: 'conversationId', description: 'Conversation ID', type: String })

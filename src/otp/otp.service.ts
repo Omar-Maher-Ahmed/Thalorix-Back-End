@@ -131,9 +131,11 @@ export class OtpService {
       throw new BadRequestException('Invalid OTP code');
     }
 
-    // Mark as used
-    otp.isUsed = true;
-    await otp.save();
+    // Mark as used for verification OTPs. Password reset OTPs are consumed during the actual reset.
+    if (otp.type !== OtpType.PASSWORD_RESET) {
+      otp.isUsed = true;
+      await otp.save();
+    }
 
     this.logger.log(`[verifyAndUpdate] OTP validated for ${identifier} (type=${otp.type})`);
 

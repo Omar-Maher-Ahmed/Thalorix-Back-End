@@ -120,6 +120,7 @@ export class ChatService {
   async getConversationMessages(
     conversationId: string,
     page = 1,
+    userId: string,
     limit = 30,
   ) {
     const skip = (page - 1) * limit;
