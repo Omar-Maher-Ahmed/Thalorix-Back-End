@@ -5,14 +5,20 @@ import {
     Headers,
     Req,
     HttpCode,
-    HttpStatus
+    HttpStatus,
+    UseGuards,
+    ForbiddenException,
+    BadRequestException
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { StripeService } from './stripe.service';
 import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiHeader, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from '../orders/orders.service';
+import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
+import { AccessTokenGuard } from '../auth/guards/access-token.guard';
+import { PaymentStatus } from '../orders/schema/order.schema';
 
 @ApiTags('Stripe')
 @Controller('stripe')
@@ -23,16 +29,51 @@ export class StripeController {
     ) { }
 
     @ApiOperation({ summary: 'Create checkout session', description: 'Creates a new Stripe checkout session' })
+    @ApiBearerAuth('access-token')
+    @UseGuards(JwtAuthGuard, AccessTokenGuard)
     @ApiBody({ type: CreateCheckoutSessionDto })
     @ApiResponse({ status: 201, description: 'Checkout session created successfully' })
     @ApiResponse({ status: 400, description: 'Bad Request' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 403, description: 'Forbidden' })
     @Post('create-checkout-session')
-    async createCheckoutSession(@Body() createCheckoutDto: CreateCheckoutSessionDto) {
+    async createCheckoutSession(@Req() req: any, @Body() createCheckoutDto: CreateCheckoutSessionDto) {
+        // 1. Fetch order from DB
+        const order = await this.ordersService.findOne(createCheckoutDto.orderId, req.user.userId);
+        
+        // 2. Validate that the logged-in user is the buyer of this order
+        const buyerIdStr = order.buyer ? (order.buyer._id || order.buyer).toString() : '';
+        if (buyerIdStr !== req.user.userId.toString()) {
+            throw new ForbiddenException('You are not allowed to check out this order');
+        }
+
+        // 3. Validate that the order is unpaid
+        if (order.paymentStatus !== PaymentStatus.UNPAID) {
+            throw new BadRequestException('Order is already paid');
+        }
+
+        // 4. Construct secure items from order & populated template
+        const template = order.template as any;
+        if (!template) {
+            throw new BadRequestException('Template details not found in order');
+        }
+
+        const items = [
+            {
+                name: template.title,
+                amount: Math.round(order.price * 100), // convert to cents
+                quantity: order.quantity || 1,
+                images: template.image ? template.image : undefined,
+            }
+        ];
+
+        // 5. Call service to create session
         const session = await this.stripeService.createCheckoutSession(
-            createCheckoutDto.items,
-            createCheckoutDto.customerEmail,
-            createCheckoutDto.orderId,
+            items,
+            req.user.email,
+            order._id.toString(),
             createCheckoutDto.successUrl,
+            createCheckoutDto.cancelUrl,
         );
 
         return {

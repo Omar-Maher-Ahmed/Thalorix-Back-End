@@ -101,9 +101,14 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
+    const buyerIdStr = order.buyer ? (order.buyer._id || order.buyer).toString() : '';
+    const sellerIdStr = order.seller
+      ? (order.seller._id || order.seller).toString()
+      : (order.populated('seller') || '').toString();
+
     if (
-      order.buyer._id.toString() !== userId &&
-      order.seller._id.toString() !== userId
+      buyerIdStr !== userId.toString() &&
+      sellerIdStr !== userId.toString()
     ) {
       throw new ForbiddenException('You are not allowed to view this order');
     }

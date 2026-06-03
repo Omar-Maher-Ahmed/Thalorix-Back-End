@@ -16,7 +16,13 @@ export class StripeService {
     );
   }
 
-  async createCheckoutSession(items: any[], customerEmail?: string, orderId?: string, successUrl?: string) {
+  async createCheckoutSession(
+    items: any[],
+    customerEmail?: string,
+    orderId?: string,
+    successUrl?: string,
+    cancelUrl?: string,
+  ) {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: items.map(item => ({
@@ -32,7 +38,7 @@ export class StripeService {
       })),
       mode: 'payment',
       success_url: successUrl || this.configService.get('FRONTEND_SUCCESS_URL'),
-      cancel_url: this.configService.get('FRONTEND_CANCEL_URL'),
+      cancel_url: cancelUrl || this.configService.get('FRONTEND_CANCEL_URL'),
       customer_email: customerEmail,
       metadata: orderId ? { orderId } : undefined,
     });
