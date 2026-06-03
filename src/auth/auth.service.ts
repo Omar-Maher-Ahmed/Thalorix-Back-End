@@ -8,6 +8,8 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../users/schema/user.schema';
+import { Admin } from '../admin/schema/admin.schema';
+import { Seller } from '../sellers/schema/seller.schema';
 import {
   WebsiteSignUpDto,
   MobileSignUpDto,
@@ -27,6 +29,10 @@ export class AuthService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
+    @InjectModel(Admin.name)
+    private readonly adminModel: Model<Admin>,
+    @InjectModel(Seller.name)
+    private readonly sellerModel: Model<Seller>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
   ) { }
