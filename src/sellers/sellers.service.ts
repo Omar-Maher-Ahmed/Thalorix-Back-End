@@ -38,7 +38,7 @@ export class SellersService {
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
     private readonly auditLogService: AuditLogService,
-  ) {}
+  ) { }
 
   // ================= Register Seller =================
   async registerSeller(dto: CreateSellerDto) {

@@ -85,7 +85,7 @@ export class StripeController {
     @ApiOperation({ summary: 'Handle Stripe Webhook', description: 'Handles webhook events from Stripe' })
     @ApiHeader({ name: 'stripe-signature', description: 'Stripe webhook signature', required: true })
     @ApiResponse({ status: 200, description: 'Webhook handled successfully' })
-    @Post('webhook')
+    @Post(process.env.STRIPE_WEBHOOK_PATH || 'webhook')
     @HttpCode(HttpStatus.OK)
     async handleWebhook(
         @Req() req: RawBodyRequest<Request>,
@@ -112,6 +112,10 @@ export class StripeController {
 
                 case 'payment_intent.succeeded':
                     await this.handlePaymentIntentSucceeded(event.data.object);
+                    break;
+
+                case 'payment_intent.payment_failed':
+                    await this.handlePaymentIntentFailed(event.data.object);
                     break;
 
                 default:
@@ -148,6 +152,22 @@ export class StripeController {
 
     private async handlePaymentIntentSucceeded(paymentIntent: any) {
         // لو بتستخدم Payment Intents API مباشرة
-        console.log('Payment intent succeeded:', paymentIntent.id);
+        console.log('payment intent succeeded:', paymentIntent.id);
+    }
+
+    private async handlePaymentIntentFailed(paymentIntent: any) {
+        const orderId = paymentIntent.metadata?.orderId;
+        if (orderId) {
+            console.log(`Payment failed for order: ${orderId}`);
+            try {
+                await this.ordersService.markAsFailed(orderId);
+                console.log(`Order ${orderId} marked as FAILED`);
+            } catch (error) {
+                console.error(`Error marking order ${orderId} as failed:`, error.message);
+            }
+        } else {
+            console.warn('Payment failed but no orderId found in metadata for paymentIntent:', paymentIntent.id);
+        }
+        console.log('Error Message:', paymentIntent.last_payment_error?.message);
     }
 }

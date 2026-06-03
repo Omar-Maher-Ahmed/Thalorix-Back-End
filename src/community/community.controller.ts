@@ -7,12 +7,16 @@ import {
   Patch,
   Delete,
   Param,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 
 import { CommunityService } from './community.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
+import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 
 @ApiTags('Community')
 @Controller('community')
@@ -107,5 +111,21 @@ export class CommunityController {
   @Delete('comment/:id')
   deleteComment(@Param('id') id: string) {
     return this.service.deleteComment(id);
+  }
+
+  // 🟢 Toggle Like Post
+  @ApiOperation({ summary: 'Toggle like on a post', description: 'Likes or unlikes a community post' })
+  @ApiParam({ name: 'id', description: 'Post ID', type: String })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, AccessTokenGuard)
+  @ApiResponse({ status: 200, description: 'Post liked/unliked successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Post not found' })
+  @Post('post/:id/like')
+  toggleLike(
+    @Param('id') postId: string,
+    @Req() req: any,
+  ) {
+    return this.service.toggleLike(postId, req.user.userId);
   }
 }

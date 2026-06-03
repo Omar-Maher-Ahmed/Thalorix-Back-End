@@ -2,10 +2,11 @@
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { Post, PostDocument } from './schemas/post.schema';
 import { Comment, CommentDocument } from './schemas/comment.schema';
+import { PostLike, PostLikeDocument } from './schemas/post-like.schema';
 
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -15,6 +16,7 @@ export class CommunityService {
   constructor(
     @InjectModel(Post.name) private postModel: Model<PostDocument>,
     @InjectModel(Comment.name) private commentModel: Model<CommentDocument>,
+    @InjectModel(PostLike.name) private postLikeModel: Model<PostLikeDocument>,
   ) { }
 
   // 🟢 Create Post
@@ -112,5 +114,35 @@ export class CommunityService {
     });
 
     return { message: 'Comment deleted' };
+  }
+
+  // 🟢 Toggle Like Post
+  async toggleLike(postId: string, userId: string) {
+    const post = await this.postModel.findById(postId);
+    if (!post) throw new NotFoundException('Post not found');
+
+    const existingLike = await this.postLikeModel.findOne({
+      userId: new Types.ObjectId(userId),
+      postId: new Types.ObjectId(postId),
+    });
+
+    if (existingLike) {
+      // Unlike
+      await this.postLikeModel.findByIdAndDelete(existingLike._id);
+      await this.postModel.findByIdAndUpdate(postId, {
+        $inc: { likesCount: -1 },
+      });
+      return { liked: false, message: 'Post unliked successfully' };
+    } else {
+      // Like
+      await this.postLikeModel.create({
+        userId: new Types.ObjectId(userId),
+        postId: new Types.ObjectId(postId),
+      });
+      await this.postModel.findByIdAndUpdate(postId, {
+        $inc: { likesCount: 1 },
+      });
+      return { liked: true, message: 'Post liked successfully' };
+    }
   }
 }

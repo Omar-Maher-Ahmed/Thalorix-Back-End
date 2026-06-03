@@ -141,6 +141,26 @@ export class OrdersService {
     return order;
   }
 
+  // 💳 Mark As Failed (في حال فشل الدفع)
+  async markAsFailed(orderId: string) {
+    const order = await this.orderModel.findById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.paymentStatus !== PaymentStatus.UNPAID) {
+      throw new BadRequestException('Order already processed');
+    }
+
+    order.paymentStatus = PaymentStatus.FAILED;
+    order.orderStatus = OrderStatus.CANCELLED;
+
+    await order.save();
+
+    return order;
+  }
+
   // 📦 Complete Order (Any user can complete any order)
   async completeOrder(orderId: string) {
     const order = await this.orderModel.findById(orderId);
