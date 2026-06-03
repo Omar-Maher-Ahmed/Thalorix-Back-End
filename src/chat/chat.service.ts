@@ -44,7 +44,7 @@ export class ChatService {
     const adminAccount = await this.adminModel.findById(userId).select('name avatarUrl role').lean();
     if (adminAccount) return { _id: adminAccount._id, name: adminAccount.name, avatar: adminAccount.avatarUrl, role: adminAccount.role || 'admin' };
     
-    return { _id: id, name: 'Unknown User', avatar: null, role: 'user' };
+    return null;
   }
 
   async populateMessage(msg: any) {
@@ -52,6 +52,8 @@ export class ChatService {
     const sender = await this.getUserOrSellerOrAdmin(msg.sender);
     const receiver = await this.getUserOrSellerOrAdmin(msg.receiver);
     
+    if (!sender || !receiver) return null;
+
     let replyTo = null;
     if (msg.replyTo) {
       let replyMsg = msg.replyTo;
@@ -153,7 +155,7 @@ export class ChatService {
       .limit(limit)
       .lean();
 
-    const result = await Promise.all(messages.map((msg) => this.populateMessage(msg)));
+    const result = (await Promise.all(messages.map((msg) => this.populateMessage(msg)))).filter((msg) => msg !== null);
     await this.cacheManager.set(cacheKey, result);
     return result;
   }
@@ -178,6 +180,10 @@ export class ChatService {
           conv.participants.map((p) => this.getUserOrSellerOrAdmin(p))
         );
 
+        if (participants.includes(null)) {
+          return null;
+        }
+
         let lastMessage = null;
         if (conv.lastMessage) {
           lastMessage = await this.populateMessage(conv.lastMessage);
@@ -199,8 +205,9 @@ export class ChatService {
       })
     );
 
-    await this.cacheManager.set(cacheKey, populatedConversations);
-    return populatedConversations;
+    const filteredConversations = populatedConversations.filter((c) => c !== null);
+    await this.cacheManager.set(cacheKey, filteredConversations);
+    return filteredConversations;
   }
 
   async markMessagesAsRead(conversationId: string, userId: string) {
@@ -285,6 +292,7 @@ export class ChatService {
       .sort({ createdAt: -1 })
       .lean();
 
-    return Promise.all(messages.map((msg) => this.populateMessage(msg)));
+    const populated = await Promise.all(messages.map((msg) => this.populateMessage(msg)));
+    return populated.filter((msg) => msg !== null);
   }
 }

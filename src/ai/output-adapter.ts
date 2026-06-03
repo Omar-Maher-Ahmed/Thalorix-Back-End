@@ -2,7 +2,7 @@
 // Standard response envelope used across the Thalorix AI module.
 // Every controller response is wrapped by one of these helpers.
 
-export interface OutputAdapter<T = unknown> {
+export interface OutputAdapter<T = any> {
   ok: boolean;
   data?: T;
   message?: string;

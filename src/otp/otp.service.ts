@@ -182,7 +182,7 @@ export class OtpService {
       return { message: 'OTP verified. You may now reset your password.' };
     }
 
-    throw new BadRequestException('Unknown OTP type');
+    throw new BadRequestException('Invalid OTP type');
   }
 
   /**

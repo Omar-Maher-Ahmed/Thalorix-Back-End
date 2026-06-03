@@ -97,7 +97,7 @@ async function testXSS() {
 
         if (result.success) {
             // لو نجح التسجيل، نشوف الاسم اتحفظ زي ما هو ولا اتنضف
-            const savedName = result.data.user?.name || 'unknown';
+            const savedName = result.data.user?.name || 'anonymous';
             if (savedName.includes('<script>') || savedName.includes('alert')) {
                 console.log(`${colors.red}❌ ${payload.desc}: غير آمن - الاسم اتحفظ: ${savedName}${colors.reset}`);
             } else if (savedName.length < 3) {
