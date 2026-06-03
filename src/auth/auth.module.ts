@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AccessTokenGuard } from './guards/access-token.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { OtpModule } from '../otp/otp.module';
 
 import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
@@ -34,7 +35,7 @@ import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, AccessTokenGuard],
-  exports: [AccessTokenGuard, MongooseModule],
+  providers: [AuthService, JwtStrategy, AccessTokenGuard, RolesGuard],
+  exports: [AccessTokenGuard, RolesGuard, MongooseModule],
 })
 export class AuthModule {}

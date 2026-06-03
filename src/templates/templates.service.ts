@@ -228,4 +228,46 @@ export class TemplateService {
       throw error;
     }
   }
+
+  // ── Status Management (Admin / Seller) ────────────────────────────────────────────────
+
+  async updateStatus(id: string, status: string, user: any) {
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid template ID');
+      }
+
+      // Only admin or seller roles can update template status
+      if (user.role !== 'admin' && user.role !== 'seller') {
+        throw new ForbiddenException('Access restricted to admin or seller accounts');
+      }
+
+      const template = await this.templateModel.findById(id);
+
+      if (!template) {
+        throw new NotFoundException('Template not found');
+      }
+
+      // If user is a seller, verify they own the template
+      if (user.role === 'seller' && template.developerId.toString() !== user.userId.toString()) {
+        throw new ForbiddenException('You are not allowed to update the status of this template');
+      }
+
+      const isActive = status === 'active';
+      
+      template.isActive = isActive;
+      template.status = status === 'active' ? 'Active' : 'Suspended';
+
+      await template.save();
+
+      return {
+        message: 'Template status updated successfully',
+        templateId: template._id.toString(),
+        status: status,
+      };
+    } catch (error) {
+      this.logger.error(`Template Status Update Error: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
 }

@@ -26,6 +26,10 @@ import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { TemplateStatsResponseDto } from './dto/template-stats-response.dto';
+import { Role } from '../auth/decorators/roles.decorator';
+import { Roles as RoleEnum } from '../auth/enums/roles.enum';
+import { UpdateTemplateStatusDto } from './dto/update-template-status.dto';
+import { UpdateTemplateStatusResponseDto } from './dto/update-template-status-response.dto';
 import { TemplateService } from './templates.service';
 import { CloudinaryService } from '../services/cloudinary/cloudinary.service';
 import { Types } from 'mongoose';
@@ -237,5 +241,31 @@ export class TemplateController {
       throw new BadRequestException('Invalid template ID');
     }
     return this.templateService.remove(id, req.user);
+  }
+
+  // ── PATCH /templates/:id/status ────────────────────────────────────────────
+  @ApiOperation({
+    summary: 'Update a template status',
+    description: 'Activates or suspends a template. Admin or owning Seller role required.',
+  })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Template ID', type: String })
+  @ApiBody({ type: UpdateTemplateStatusDto })
+  @ApiResponse({ status: 200, description: 'Template status updated successfully', type: UpdateTemplateStatusResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid template ID or status' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden – admin or owning seller role required' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateTemplateStatusDto,
+    @Req() req: any,
+  ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid template ID');
+    }
+    return this.templateService.updateStatus(id, dto.status, req.user);
   }
 }
