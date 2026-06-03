@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MailerService as NestMailerService } from '@nestjs-modules/mailer';
-import {
-  ISendOtpEmailOptions,
-  ISendVerificationEmailOptions,
-  IMailOptions,
-} from './mailer.interface';
+import { ISendOtpEmailOptions, ISendVerificationEmailOptions, IMailOptions } from './mailer.interface';
 
 @Injectable()
 export class MailerService {
@@ -26,14 +22,9 @@ export class MailerService {
           year: new Date().getFullYear(),
         },
       });
-      this.logger.log(
-        `Email successfully sent to ${options.to} using template ${options.template}`,
-      );
+      this.logger.log(`Email successfully sent to ${options.to} using template ${options.template}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to send email to ${options.to}: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to send email to ${options.to}: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -41,10 +32,7 @@ export class MailerService {
   /**
    * Sends an OTP email
    */
-  async sendOtpEmail(
-    options: ISendOtpEmailOptions,
-    actionLabel: string = 'verification',
-  ): Promise<void> {
+  async sendOtpEmail(options: ISendOtpEmailOptions, actionLabel: string = 'verification'): Promise<void> {
     await this.sendEmail({
       to: options.email,
       subject: `Your OTP Code - ${actionLabel}`,
@@ -61,9 +49,7 @@ export class MailerService {
   /**
    * Sends a verification email
    */
-  async sendVerificationEmail(
-    options: ISendVerificationEmailOptions,
-  ): Promise<void> {
+  async sendVerificationEmail(options: ISendVerificationEmailOptions): Promise<void> {
     await this.sendEmail({
       to: options.email,
       subject: 'Verify Your Email Address',

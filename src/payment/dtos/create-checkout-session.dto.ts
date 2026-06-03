@@ -31,4 +31,14 @@ export class CreateCheckoutSessionDto {
     @IsOptional()
     @IsEmail()
     customerEmail?: string;
+
+    @ApiPropertyOptional({ description: 'Order ID to be passed to webhook metadata', example: '60d5ecb8b392d7001f8e8e30' })
+    @IsOptional()
+    @IsString()
+    orderId?: string;
+
+    @ApiPropertyOptional({ description: 'Frontend success URL for redirect', example: 'http://localhost:3000/success' })
+    @IsOptional()
+    @IsString()
+    successUrl?: string;
 }

@@ -14,6 +14,7 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
+import * as jwt from 'jsonwebtoken'; // تعديل استيراد مكتبة الـ JWT
 
 @WebSocketGateway({
   cors: {
@@ -26,8 +27,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  // Map: userId => socketId
-  private connectedUsers = new Map<string, string>();
+  // الخريطة الآن تدعم بشكل صحيح تعدد التبويبات (Multiple Tabs) لليوزر الواحد
+  private connectedUsers = new Map<string, Set<string>>();
 
   constructor(private readonly chatService: ChatService) {}
 
@@ -41,13 +42,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = this.extractUserIdFromToken(token);
       if (!userId) return socket.disconnect();
 
-      socket.data.userId = userId;
-      this.connectedUsers.set(userId, socket.id);
+socket.data.userId = userId;
 
-      // اليوزر ينضم لـ room خاص بيه (عشان نبعت له messages)
-      socket.join(`user:${userId}`);
+// إدارة الاتصالات المتعددة لليوزر الواحد بشكل صحيح
+const isFirstConnection = !this.connectedUsers.has(userId);
 
-      console.log(`User ${userId} connected — socket: ${socket.id}`);
+if (isFirstConnection) {
+  this.connectedUsers.set(userId, new Set<string>());
+}
+
+this.connectedUsers.get(userId)?.add(socket.id);
+
+// مهم جداً
+await socket.join(`user:${userId}`);
+
+if (isFirstConnection) {
+  this.server.emit('user_status', {
+    userId,
+    status: 'online',
+  });
+}
+      // Send the list of currently online user IDs to the newly connected user
+      socket.emit('online_users', Array.from(this.connectedUsers.keys()));
     } catch {
       socket.disconnect();
     }
@@ -55,9 +71,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(socket: Socket) {
     const userId = socket.data?.userId;
-    if (userId) {
-      this.connectedUsers.delete(userId);
-      console.log(`User ${userId} disconnected`);
+    if (userId && this.connectedUsers.has(userId)) {
+      const userSockets = this.connectedUsers.get(userId);
+      
+      // مسح السوكيت الحالي فقط المغلق
+      if (!userSockets) return;
+
+      userSockets.delete(socket.id);
+
+
+      // إذا أغلق اليوزر كل التبويبات ولم يتبقَ له أي سوكيت مفتوح
+      if (userSockets.size === 0) {
+        this.connectedUsers.delete(userId);
+        console.log(`User ${userId} disconnected completely`);
+
+        // Broadcast offline status to everyone in the chat namespace
+        this.server.emit('user_status', { userId, status: 'offline' });
+      } else {
+        console.log(`User ${userId} closed one tab — remaining sockets: ${userSockets.size}`);
+      }
     }
   }
 
@@ -87,12 +119,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         conversation: message.conversation,
         createdAt: message['createdAt'],
         isRead: message.isRead,
+        attachmentUrl: message.attachmentUrl,
+        replyTo: message.replyTo,
       };
 
-      // ابعت للمستقبل لو كان online
-      this.server.to(`user:${dto.receiverId}`).emit('receive_message', payload);
+      // ابعت للمستقبل وللمرسل (عشان لو فاتح كذا تابة يتزامنوا لحظياً)
+      this.server.to(`user:${dto.receiverId}`).to(`user:${senderId}`).emit('receive_message', payload);
 
-      // confirm للمرسل
+      // confirm للمرسل الأساسي
       socket.emit('message_sent', payload);
     } catch (err) {
       socket.emit('error', { message: 'Failed to send message' });
@@ -133,12 +167,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private extractUserIdFromToken(token: string): string | null {
     try {
-      // استخدم نفس الـ JwtService بتاعك
-      const jwt = require('jsonwebtoken');
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      // تم تعديل الاعتمادية هنا لتستخدم الـ import العلوي المستقر
+      const payload = jwt.verify(token, process.env.JWT_SECRET) as any;
       return payload.sub || payload.id;
     } catch {
       return null;
+    }
+  }
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('delete_message')
+  async handleDeleteMessage(
+    @MessageBody() { messageId, conversationId }: { messageId: string; conversationId: string },
+    @ConnectedSocket() socket: Socket,
+  ) {
+    try {
+      const message = await this.chatService.deleteMessage(messageId, socket.data.userId);
+      const rId = message.receiver.toString();
+      const sId = message.sender.toString();
+      
+      // ابعت للمستقبل وللمرسل لحظياً في الغرف الخاصة بهم
+      this.server.to(`user:${rId}`).to(`user:${sId}`).emit('message_deleted', { messageId, conversationId });
+    } catch (err) {
+      socket.emit('error', { message: err?.message || 'Failed to delete message' });
     }
   }
 }

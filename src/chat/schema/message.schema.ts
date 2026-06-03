@@ -20,8 +20,23 @@ export class Message {
   @Prop({ default: false })
   isRead: boolean;
 
+  @Prop({ type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' })
+  status: string;
+
+  @Prop()
+  readAt?: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'Message' })
+  replyTo?: Types.ObjectId;
+
+  @Prop({ default: false })
+  isDeleted: boolean;
+
   @Prop({ type: Types.ObjectId, ref: 'Conversation', required: true })
   conversation: Types.ObjectId;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
+
+MessageSchema.index({ conversation: 1, createdAt: -1 });
+MessageSchema.index({ conversation: 1, receiver: 1, isRead: 1 });

@@ -1,6 +1,5 @@
-
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Folder } from './schema/upload.folders.schema';
@@ -9,6 +8,8 @@ import { UploadResponse } from './interfaces/upload-response.interface';
 
 @Injectable()
 export class CloudinaryService {
+  private readonly logger = new Logger(CloudinaryService.name);
+
   constructor(
     @InjectModel(Folder.name) private folderModel: Model<Folder>,
     private configService: ConfigService,
@@ -25,7 +26,7 @@ export class CloudinaryService {
 
     if (!folder) {
       // Auto-create folder if it doesn't exist to prevent upload failures
-      const newFolder = await this.folderModel.findOneAndUpdate(
+      let newFolder = await this.folderModel.findOneAndUpdate(
         { slug },
         {
           $setOnInsert: {
@@ -36,9 +37,12 @@ export class CloudinaryService {
             maxSizeMB: 50,
           },
         },
-        { upsert: true, new: true },
+        { upsert: true, returnDocument: 'after', new: true },
       );
-      return newFolder.path;
+      if (!newFolder) {
+        newFolder = await this.folderModel.findOne({ slug });
+      }
+      return newFolder?.path || `thalorix/${slug}`;
     }
 
     return folder.path;
@@ -55,21 +59,25 @@ export class CloudinaryService {
     const folderPath = await this.getFolderPath(slug);
 
     return new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          { folder: folderPath, resource_type: 'auto' },
-          (error, result?: UploadApiResponse) => {
-            if (error) return reject(error);
-            if (!result) return reject('Upload failed');
-
-            resolve({
-              url: result.secure_url,
-              publicId: result.public_id,
-              format: result.format,
-            });
-          },
-        )
-        .end(file.buffer);
+      cloudinary.uploader.upload_stream(
+        { folder: folderPath, resource_type: 'auto' },
+        (error: UploadApiErrorResponse, result: UploadApiResponse) => {
+          if (error) {
+            this.logger.error(`Cloudinary upload failed: ${error.message}`, error);
+            return reject(new BadRequestException(`Cloudinary upload failed: ${error.message}`));
+          }
+          if (!result) {
+            this.logger.error('Cloudinary returned no result and no error.');
+            return reject(new BadRequestException('Cloudinary returned no result.'));
+          }
+          this.logger.log(`Successfully uploaded file to Cloudinary: ${result.secure_url}`);
+          resolve({
+            url: result.secure_url,
+            publicId: result.public_id,
+            format: result.format,
+          });
+        }
+      ).end(file.buffer);
     });
   }
 

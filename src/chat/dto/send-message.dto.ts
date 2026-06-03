@@ -1,4 +1,4 @@
-import { IsMongoId, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsString, MaxLength, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SendMessageDto {
@@ -11,4 +11,14 @@ export class SendMessageDto {
   @IsNotEmpty()
   @MaxLength(2000)
   content: string;
+
+  @ApiProperty({ description: 'Attachment URL if any', required: false })
+  @IsString()
+  @IsOptional()
+  attachmentUrl?: string;
+
+  @ApiProperty({ description: 'ID of the message being replied to', required: false })
+  @IsMongoId()
+  @IsOptional()
+  replyTo?: string;
 }

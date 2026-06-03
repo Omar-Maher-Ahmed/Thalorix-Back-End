@@ -12,8 +12,8 @@ export class CreateAdminDto {
   @ApiProperty({ description: 'The name of the admin', example: 'John Doe', required: true })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[\u0600-\u06FFa-zA-Z\s]+$/, {
-    message: 'Name must contain only letters and spaces',
+  @Matches(/^[\u0600-\u06FFa-zA-Z0-9\s._-]+$/, {
+    message: 'Name must contain only letters, numbers, spaces, dots, underscores, and hyphens',
   })
   name: string;
 

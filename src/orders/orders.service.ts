@@ -46,23 +46,23 @@ export class OrdersService {
       throw new BadRequestException('Template is not active');
     }
 
-    // ❌ منع شراء المنتج من نفسك
-    if (template.developerId.toString() === userId) {
-      throw new BadRequestException('You cannot purchase your own template');
-    }
+    // ❌ منع شراء المنتج من نفسك (Disabled for testing)
+    // if (template.developerId.toString() === userId) {
+    //   throw new BadRequestException('You cannot purchase your own template');
+    // }
 
-    // ❌ منع duplicate unpaid order
-    const existingOrder = await this.orderModel.findOne({
-      buyer: userId,
-      template: templateId,
-      paymentStatus: PaymentStatus.UNPAID,
-    });
+    // ❌ منع duplicate unpaid order (Disabled for testing)
+    // const existingOrder = await this.orderModel.findOne({
+    //   buyer: userId,
+    //   template: templateId,
+    //   paymentStatus: PaymentStatus.UNPAID,
+    // });
 
-    if (existingOrder) {
-      throw new BadRequestException(
-        'You already have a pending order for this template',
-      );
-    }
+    // if (existingOrder) {
+    //   throw new BadRequestException(
+    //     'You already have a pending order for this template',
+    //   );
+    // }
 
     const price = template.price;
     const totalAmount = price * quantity;
