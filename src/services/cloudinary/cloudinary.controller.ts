@@ -5,11 +5,13 @@ import {
   Param,
   UploadedFile,
   UseInterceptors,
-  Body,
+  HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from './cloudinary.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ParseFilePipeBuilder } from '@nestjs/common';
 
 @ApiTags('Cloudinary')
 @Controller('cloudinary')
@@ -25,9 +27,26 @@ export class CloudinaryController {
   @Post('upload/:slug')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: /(jpg|jpeg|png|webp|gif|mp4|webm|mov|ogg|mp3|wav|pdf|docx|txt)$/i,
+        })
+        .addMaxSizeValidator({
+          // 500MB limit for large videos
+          maxSize: 500 * 1024 * 1024,
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    ) file: Express.Multer.File,
     @Param('slug') slug: string,
   ) {
+    const forbiddenExtensions = /\.(exe|bat|cmd|ps1|js)$/i;
+    if (file && forbiddenExtensions.test(file.originalname)) {
+      throw new BadRequestException('File type not allowed for security reasons.');
+    }
+
     return this.cloudinaryService.uploadFile(file, slug);
   }
 

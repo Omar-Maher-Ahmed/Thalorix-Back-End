@@ -1,13 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-export type AuditLogDocument = AuditLog & Document;
-
 @Schema({
   timestamps: true,
   collection: 'audit_logs',
 })
-export class AuditLog {
+export class AuditLog extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User' })
   actorId?: Types.ObjectId;
 

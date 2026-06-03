@@ -6,8 +6,13 @@ import {
   IsOptional,
   IsNumberString,
   Matches,
+  IsArray,
+  ValidateNested,
+  IsObject
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ExpertiseDto, SocialLinksDto } from '../../auth/dto/update-user.dto';
 
 export class UpdateAdminDto {
   @ApiPropertyOptional({ description: 'The email address of the admin', example: 'admin@example.com' })
@@ -18,8 +23,8 @@ export class UpdateAdminDto {
   @ApiPropertyOptional({ description: 'The name of the admin', example: 'John Doe', minLength: 2 })
   @IsOptional()
   @IsString()
-  @Matches(/^[\u0600-\u06FFa-zA-Z\s]+$/, {
-    message: 'Name must contain only letters and spaces',
+  @Matches(/^[\u0600-\u06FFa-zA-Z0-9\s._-]+$/, {
+    message: 'Name must contain only letters, numbers, spaces, dots, underscores, and hyphens',
   })
   @MinLength(2, { message: 'Name is too short' })
   name?: string;
@@ -33,4 +38,33 @@ export class UpdateAdminDto {
   @IsOptional()
   @IsNumberString()
   tokenVersion?: number;
+
+  @ApiPropertyOptional({ description: 'Short bio' })
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @ApiPropertyOptional({ description: 'User expertise skills and percentages' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ExpertiseDto)
+  expertise?: ExpertiseDto[];
+
+  @ApiPropertyOptional({ description: 'Social media links' })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => SocialLinksDto)
+  socialLinks?: SocialLinksDto;
+
+  @ApiPropertyOptional({ description: 'Admin avatar image URL' })
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Admin avatar image URL (alias)' })
+  @IsOptional()
+  @IsString()
+  avatar?: string;
 }

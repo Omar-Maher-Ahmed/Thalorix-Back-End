@@ -16,7 +16,7 @@ export class StripeService {
     );
   }
 
-  async createCheckoutSession(items: any[], customerEmail?: string) {
+  async createCheckoutSession(items: any[], customerEmail?: string, orderId?: string, successUrl?: string) {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: items.map(item => ({
@@ -31,9 +31,10 @@ export class StripeService {
         quantity: item.quantity || 1,
       })),
       mode: 'payment',
-      success_url: this.configService.get('FRONTEND_SUCCESS_URL'),
+      success_url: successUrl || this.configService.get('FRONTEND_SUCCESS_URL'),
       cancel_url: this.configService.get('FRONTEND_CANCEL_URL'),
       customer_email: customerEmail,
+      metadata: orderId ? { orderId } : undefined,
     });
 
     return session;

@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type SellerDocument = Seller & Document;
 
@@ -46,6 +46,11 @@ export class Seller {
   isActive: boolean;
 
   @Prop({
+    default: false,
+  })
+  isDeleted: boolean;
+
+  @Prop({
     type: String,
     enum: ['seller'],
     default: 'seller',
@@ -57,7 +62,6 @@ export class Seller {
   })
   lastLogin?: Date;
 
-  // Business-related optional fields
   @Prop({ required: false, trim: true })
   storeName?: string;
 
@@ -68,10 +72,64 @@ export class Seller {
   logo?: string;
 
   @Prop({ required: false })
+  banner?: string;
+
+  @Prop({ required: false })
   address?: string;
 
-  @Prop({ default: 0 })
+  @Prop({ required: false, trim: true })
+  businessCategory?: string;
+
+  @Prop({ required: false, trim: true })
+  website?: string;
+
+  @Prop({
+    type: {
+      facebook: { type: String, default: '' },
+      instagram: { type: String, default: '' },
+      linkedin: { type: String, default: '' },
+      twitter: { type: String, default: '' },
+      website: { type: String, default: '' },
+    },
+    default: { facebook: '', instagram: '', linkedin: '', twitter: '', website: '' },
+  })
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+    website?: string;
+  };
+
+  @Prop({ required: false, trim: true })
+  businessType?: string;
+
+  @Prop({ required: false, trim: true })
+  taxNumber?: string;
+
+  @Prop({ type: [String], default: [] })
+  verificationDocuments: string[];
+
+  @Prop({ default: 5 })
   ratings: number;
+
+  @Prop({ default: 0 })
+  reviewsCount: number;
+
+  @Prop({ default: 0 })
+  salesCount: number;
+
+  @Prop({ default: 0 })
+  downloadsCount: number;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  followers: Types.ObjectId[];
+
+  @Prop({ default: 0 })
+  followersCount: number;
+
+  @Prop({ default: 0 })
+  followingCount: number;
 
   // Needed for standard Auth JWT validation
   @Prop({ required: false, select: false })

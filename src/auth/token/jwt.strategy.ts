@@ -31,35 +31,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!rawToken) throw new UnauthorizedException('No token provided');
 
-    const model: Model<any> =
-      payload.role === 'admin'
-        ? this.adminModel
-        : payload.role === 'seller'
-          ? this.sellerModel
-          : this.userModel;
-
-    let user = await model
-      .findById(payload.sub)
-      .select('+currentAccessToken')
-      .exec();
+    let user;
 
     // 1. اختار الموديل الصح بناءً على الـ Role
-    // if (payload.role === 'admin') {
-    //   user = await this.adminModel
-    //     .findById(payload.sub)
-    //     .select('+currentAccessToken')
-    //     .exec();
-    // } else if (payload.role === 'seller') {
-    //   user = await this.sellerModel
-    //     .findById(payload.sub)
-    //     .select('+currentAccessToken')
-    //     .exec();
-    // } else {
-    //   user = await this.userModel
-    //     .findById(payload.sub)
-    //     .select('+currentAccessToken')
-    //     .exec();
-    // }
+    if (payload.role === 'admin') {
+      user = await this.adminModel
+        .findById(payload.sub)
+        .select('+currentAccessToken')
+        .exec();
+    } else if (payload.role === 'seller') {
+      user = await this.sellerModel
+        .findById(payload.sub)
+        .select('+currentAccessToken')
+        .exec();
+    } else {
+      user = await this.userModel
+        .findById(payload.sub)
+        .select('+currentAccessToken')
+        .exec();
+    }
 
     // 2. التحقق من وجود الحساب
     if (!user) throw new UnauthorizedException('Account not found');
@@ -82,6 +72,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // 5. رجع البيانات اللي هتحتاجها في الـ Req.user
     return {
       userId: user._id,
+      _id: user._id,
       email: user.email,
       role: user.role,
     };

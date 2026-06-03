@@ -4,19 +4,21 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Seller, SellerSchema } from './schema/seller.schema';
 import { Review, ReviewSchema } from './schema/review.schema';
+import { Template, TemplateSchema } from '../templates/schema/template.schema';
 import { SellersService } from './sellers.service';
 import { SellersController } from './sellers.controller';
 import { OtpModule } from '../otp/otp.module';
-import { AuthModule } from '../auth/auth.module';
+import { CloudinaryModule } from '../services/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Seller.name, schema: SellerSchema },
       { name: Review.name, schema: ReviewSchema },
+      { name: Template.name, schema: TemplateSchema },
     ]),
-    AuthModule,
     OtpModule,
+    CloudinaryModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

@@ -39,13 +39,17 @@ export class AdminService {
 
   // ================= Update =================
   async update(id: string, dto: UpdateAdminDto) {
-    const user = await this.adminModel.findByIdAndUpdate(id, dto, {
-      new: true,
-    });
+    const updateData = { ...dto } as any;
+    if (dto.avatar && !dto.avatarUrl) {
+      updateData.avatarUrl = dto.avatar;
+    }
+    const user = await this.adminModel.findByIdAndUpdate(id, { $set: updateData }, {
+      returnDocument: 'after',
+    }).select('-password').lean();
 
     if (!user) throw new NotFoundException('User not found');
 
-    return { message: 'User updated successfully' };
+    return { message: 'User updated successfully', user };
   }
   // ================= Remove =================
   async remove(id: string) {
@@ -98,19 +102,19 @@ export class AdminService {
   async Login(dto: LoginAdminDto) {
     try {
       if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       const email = dto.email.toLowerCase().trim();
       const user = await this.adminModel.findOne({ email }).select('+password');
 
       if (!user) {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       const isMatch = await bcrypt.compare(dto.password, user.password);
       if (!isMatch) {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
       if (!user.isVerified) {

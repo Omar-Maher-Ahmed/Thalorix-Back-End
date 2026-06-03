@@ -5,8 +5,32 @@ import {
   MinLength,
   IsOptional,
   IsNumberString,
+  IsNumber,
+  IsArray,
+  ValidateNested,
+  IsObject
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+
+export class ExpertiseDto {
+  @IsString()
+  name: string;
+
+  @IsNumber()
+  @IsOptional()
+  percent?: number;
+}
+
+export class SocialLinksDto {
+  @IsString()
+  @IsOptional()
+  facebook?: string;
+
+  @IsString()
+  @IsOptional()
+  instagram?: string;
+}
 
 export class UpdateUserDto {
 
@@ -36,9 +60,36 @@ export class UpdateUserDto {
   @IsString()
   bio?: string;
 
-  @ApiPropertyOptional({ description: 'The new password for the user account', example: 'NewSecurePassword123' })
+  @ApiPropertyOptional({ description: 'User avatar image URL' })
   @IsOptional()
   @IsString()
-  @MinLength(6, { message: 'Password must be at least 6 characters long' })
-  password?: string;
+  avatarUrl?: string;
+
+  @ApiPropertyOptional({ description: 'User avatar image URL (alias)' })
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @ApiPropertyOptional({ description: 'User expertise skills and percentages' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ExpertiseDto)
+  expertise?: ExpertiseDto[];
+
+  @ApiPropertyOptional({ description: 'Social media links' })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => SocialLinksDto)
+  socialLinks?: SocialLinksDto;
+
+  @ApiPropertyOptional({ description: 'The role of the user', enum: ['admin', 'user', 'seller'] })
+  @IsOptional()
+  @IsString()
+  role?: string;
+
+  @ApiPropertyOptional({ description: 'Is the user blocked from logging in', example: false })
+  @IsOptional()
+  isBlocked?: boolean;
 }

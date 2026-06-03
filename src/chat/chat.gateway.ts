@@ -14,6 +14,7 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
+import * as jwt from 'jsonwebtoken';
 
 @WebSocketGateway({
   cors: {
@@ -26,28 +27,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  // Map: userId => socketId
-  private connectedUsers = new Map<string, string>();
+  // Connected users maps user ID to Set of active socket IDs
+  private connectedUsers = new Map<string, Set<string>>();
 
   constructor(private readonly chatService: ChatService) {}
 
   async handleConnection(socket: Socket) {
     try {
-      // الـ token بييجي في handshake.auth
       const token = socket.handshake.auth?.token;
       if (!token) return socket.disconnect();
 
-      // verify JWT — نفس logic الـ guard بتاعك
       const userId = this.extractUserIdFromToken(token);
       if (!userId) return socket.disconnect();
 
       socket.data.userId = userId;
-      this.connectedUsers.set(userId, socket.id);
 
-      // اليوزر ينضم لـ room خاص بيه (عشان نبعت له messages)
-      socket.join(`user:${userId}`);
+      const isFirstConnection = !this.connectedUsers.has(userId);
 
-      console.log(`User ${userId} connected — socket: ${socket.id}`);
+      if (isFirstConnection) {
+        this.connectedUsers.set(userId, new Set<string>());
+      }
+
+      this.connectedUsers.get(userId)?.add(socket.id);
+
+      await socket.join(`user:${userId}`);
+
+      if (isFirstConnection) {
+        this.server.emit('user_status', {
+          userId,
+          status: 'online',
+        });
+      }
+      socket.emit('online_users', Array.from(this.connectedUsers.keys()));
     } catch {
       socket.disconnect();
     }
@@ -55,9 +66,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(socket: Socket) {
     const userId = socket.data?.userId;
-    if (userId) {
-      this.connectedUsers.delete(userId);
-      console.log(`User ${userId} disconnected`);
+    if (userId && this.connectedUsers.has(userId)) {
+      const userSockets = this.connectedUsers.get(userId);
+      
+      if (!userSockets) return;
+
+      userSockets.delete(socket.id);
+
+      if (userSockets.size === 0) {
+        this.connectedUsers.delete(userId);
+        console.log(`User ${userId} disconnected completely`);
+        this.server.emit('user_status', { userId, status: 'offline' });
+      } else {
+        console.log(`User ${userId} closed one tab — remaining sockets: ${userSockets.size}`);
+      }
     }
   }
 
@@ -69,7 +91,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const senderId = socket.data.userId;
 
-    // validate الـ DTO
     const dtoInstance = plainToInstance(SendMessageDto, dto);
     const errors = await validate(dtoInstance);
     if (errors.length > 0) {
@@ -87,12 +108,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         conversation: message.conversation,
         createdAt: message['createdAt'],
         isRead: message.isRead,
+        attachmentUrl: message.attachmentUrl,
+        replyTo: message.replyTo,
       };
 
-      // ابعت للمستقبل لو كان online
-      this.server.to(`user:${dto.receiverId}`).emit('receive_message', payload);
-
-      // confirm للمرسل
+      this.server.to(`user:${dto.receiverId}`).to(`user:${senderId}`).emit('receive_message', payload);
       socket.emit('message_sent', payload);
     } catch (err) {
       socket.emit('error', { message: 'Failed to send message' });
@@ -133,12 +153,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private extractUserIdFromToken(token: string): string | null {
     try {
-      // استخدم نفس الـ JwtService بتاعك
-      const jwt = require('jsonwebtoken');
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const payload = jwt.verify(token, process.env.JWT_SECRET) as any;
       return payload.sub || payload.id;
     } catch {
       return null;
+    }
+  }
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('delete_message')
+  async handleDeleteMessage(
+    @MessageBody() { messageId, conversationId }: { messageId: string; conversationId: string },
+    @ConnectedSocket() socket: Socket,
+  ) {
+    try {
+      const message = await this.chatService.deleteMessage(messageId, socket.data.userId);
+      const rId = message.receiver.toString();
+      const sId = message.sender.toString();
+      
+      this.server.to(`user:${rId}`).to(`user:${sId}`).emit('message_deleted', { messageId, conversationId });
+    } catch (err) {
+      socket.emit('error', { message: err?.message || 'Failed to delete message' });
     }
   }
 }
