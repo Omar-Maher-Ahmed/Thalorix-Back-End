@@ -8,8 +8,6 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../users/schema/user.schema';
-import { Admin } from '../admin/schema/admin.schema';
-import { Seller } from '../sellers/schema/seller.schema';
 import {
   WebsiteSignUpDto,
   MobileSignUpDto,
@@ -29,17 +27,12 @@ export class AuthService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
-    @InjectModel(Admin.name)
-    private readonly adminModel: Model<Admin>,
-    @InjectModel(Seller.name)
-    private readonly sellerModel: Model<Seller>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
   ) { }
 
   // ================= Login Website =================
   async websiteLogin(dto: WebsiteLoginDto) {
-    let modelUsed: Model<any> = this.userModel;
     try {
       console.log('1. Starting login process for email:', dto.email);
 
@@ -50,33 +43,17 @@ export class AuthService {
 
       const email = dto.email.toLowerCase().trim();
 
-      // 1. Find user in the three collections
-      let user = await this.userModel
+      // 1. Find user with password and status fields
+      const user = await this.userModel
         .findOne({ email })
         .select('+password +isVerified +isBlocked +isDeleted');
-      modelUsed = this.userModel;
-
-      if (!user) {
-        user = await this.adminModel
-          .findOne({ email })
-          .select('+password +isVerified +isBlocked +isDeleted') as any;
-        modelUsed = this.adminModel;
-      }
-
-      if (!user) {
-        user = await this.sellerModel
-          .findOne({ email })
-          .select('+password +isVerified +isBlocked +isDeleted +isActive') as any;
-        modelUsed = this.sellerModel;
-      }
 
       if (!user) {
         throw new UnauthorizedException('Invalid email or password');
       }
 
       // 2. Check if account is blocked/deleted
-      const isBlocked = user.isBlocked || (user.role === 'seller' && !(user as any).isActive);
-      if (isBlocked || user.isDeleted) {
+      if (user.isBlocked || user.isDeleted) {
         throw new UnauthorizedException('Account is not available');
       }
 
@@ -87,7 +64,7 @@ export class AuthService {
       }
 
       // 4. Checking verification status from DB
-      const dbStatus = await modelUsed
+      const dbStatus = await this.userModel
         .findById(user._id)
         .select('isVerified')
         .lean();
@@ -105,31 +82,25 @@ export class AuthService {
       const payload = {
         sub: user._id.toString(),
         email: user.email,
-        role: user.role || (modelUsed === this.adminModel ? 'admin' : modelUsed === this.sellerModel ? 'seller' : 'user'),
+        role: user.role,
         jti: crypto.randomBytes(16).toString('hex'),
       };
 
       const accessToken = this.jwtService.sign(payload, {
-        expiresIn: '36500d',
+        expiresIn: '15m',
         secret: process.env.JWT_SECRET,
       });
 
       const refreshToken = this.jwtService.sign(payload, {
-        expiresIn: '36500d',
+        expiresIn: '7d',
         secret: process.env.JWT_SECRET,
       });
 
       // 7. Update user document with tokens (Hashed)
       user.refreshToken = await bcrypt.hash(refreshToken, 10);
       user.currentAccessToken = await bcrypt.hash(accessToken, 10);
-      if ('lastLoginAt' in user) {
-        (user as any).lastLoginAt = new Date();
-      } else if ('lastLogin' in user) {
-        (user as any).lastLogin = new Date();
-      }
-      if ('loginAttempts' in user) {
-        (user as any).loginAttempts = 0;
-      }
+      user.lastLoginAt = new Date();
+      user.loginAttempts = 0;
 
       // 8. Save changes
       await user.save();
@@ -142,12 +113,12 @@ export class AuthService {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: payload.role,
+          role: user.role,
         },
       };
     } catch (error) {
-      if (dto.email && modelUsed !== this.sellerModel) {
-        await modelUsed
+      if (dto.email) {
+        await this.userModel
           .updateOne(
             { email: dto.email.toLowerCase().trim() },
             { $inc: { loginAttempts: 1 } },
@@ -160,24 +131,13 @@ export class AuthService {
 
   // ================= Login Mobile =================
   async mobileLogin(dto: MobileLoginDto) {
-    let modelUsed: Model<any> = this.userModel;
     try {
       if (typeof dto.email !== 'string' || typeof dto.password !== 'string') {
         throw new UnauthorizedException('Invalid email or password');
       }
 
       const email = dto.email.toLowerCase().trim();
-      let user = await this.userModel.findOne({ email }).select('+password');
-
-      if (!user) {
-        user = await this.adminModel.findOne({ email }).select('+password') as any;
-        modelUsed = this.adminModel;
-      }
-
-      if (!user) {
-        user = await this.sellerModel.findOne({ email }).select('+password +isActive') as any;
-        modelUsed = this.sellerModel;
-      }
+      const user = await this.userModel.findOne({ email }).select('+password');
 
       if (!user) {
         throw new UnauthorizedException('Invalid email or password');
@@ -194,38 +154,31 @@ export class AuthService {
         );
       }
 
-      const isBlocked = user.isBlocked || (user.role === 'seller' && !(user as any).isActive);
-      if (isBlocked || user.isDeleted) {
+      if (user.isBlocked || user.isDeleted) {
         throw new UnauthorizedException('Account is not available');
       }
 
       const payload = {
         sub: user._id.toString(),
         email: user.email,
-        role: user.role || (modelUsed === this.adminModel ? 'admin' : modelUsed === this.sellerModel ? 'seller' : 'user'),
+        role: user.role,
         jti: crypto.randomBytes(16).toString('hex'),
       };
 
       const accessToken = this.jwtService.sign(payload, {
-        expiresIn: '36500d',
+        expiresIn: '15m',
         secret: process.env.JWT_SECRET,
       });
 
       const refreshToken = this.jwtService.sign(payload, {
-        expiresIn: '36500d',
+        expiresIn: '7d',
         secret: process.env.JWT_SECRET,
       });
 
       user.refreshToken = await bcrypt.hash(refreshToken, 10);
       user.currentAccessToken = await bcrypt.hash(accessToken, 10);
-      if ('lastLoginAt' in user) {
-        (user as any).lastLoginAt = new Date();
-      } else if ('lastLogin' in user) {
-        (user as any).lastLogin = new Date();
-      }
-      if ('loginAttempts' in user) {
-        (user as any).loginAttempts = 0;
-      }
+      user.lastLoginAt = new Date();
+      user.loginAttempts = 0;
 
       await user.save();
 
@@ -237,12 +190,12 @@ export class AuthService {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: payload.role,
+          role: user.role,
         },
       };
     } catch (error) {
-      if (dto.email && modelUsed !== this.sellerModel) {
-        await modelUsed
+      if (dto.email) {
+        await this.userModel
           .updateOne(
             { email: dto.email.toLowerCase().trim() },
             { $inc: { loginAttempts: 1 } },
@@ -259,29 +212,10 @@ export class AuthService {
       const payload = this.jwtService.verify(refreshToken, {
         secret: process.env.JWT_SECRET,
       });
-
-      let user;
-      let modelUsed: Model<any> = this.userModel;
-
-      if (payload.role === 'admin') {
-        user = await this.adminModel
-          .findById(payload.sub)
-          .select('+refreshToken +currentAccessToken')
-          .exec();
-        modelUsed = this.adminModel;
-      } else if (payload.role === 'seller') {
-        user = await this.sellerModel
-          .findById(payload.sub)
-          .select('+refreshToken +currentAccessToken')
-          .exec();
-        modelUsed = this.sellerModel;
-      } else {
-        user = await this.userModel
-          .findById(payload.sub)
-          .select('+refreshToken +currentAccessToken')
-          .exec();
-        modelUsed = this.userModel;
-      }
+      const user = await this.userModel
+        .findById(payload.sub)
+        .select('+refreshToken +currentAccessToken')
+        .exec();
 
       if (!user || !user.refreshToken) {
         throw new UnauthorizedException('Invalid refresh token');
@@ -296,15 +230,15 @@ export class AuthService {
       const newPayload = {
         sub: user._id.toString(),
         email: user.email,
-        role: user.role || (modelUsed === this.adminModel ? 'admin' : modelUsed === this.sellerModel ? 'seller' : 'user'),
+        role: user.role,
         jti: crypto.randomBytes(16).toString('hex'),
       };
       const newAccessToken = this.jwtService.sign(newPayload, {
-        expiresIn: '36500d',
+        expiresIn: '15m',
         secret: process.env.JWT_SECRET,
       });
       const newRefreshToken = this.jwtService.sign(newPayload, {
-        expiresIn: '36500d',
+        expiresIn: '7d',
         secret: process.env.JWT_SECRET,
       });
       user.refreshToken = await bcrypt.hash(newRefreshToken, 10);
@@ -322,7 +256,7 @@ export class AuthService {
 
   // ================= Logout =================
   async logout(userId: string) {
-    const userUpdate = await this.userModel.updateOne(
+    await this.userModel.updateOne(
       { _id: userId },
       {
         $unset: {
@@ -331,28 +265,6 @@ export class AuthService {
         },
       },
     );
-    if (userUpdate.matchedCount === 0) {
-      const adminUpdate = await this.adminModel.updateOne(
-        { _id: userId },
-        {
-          $unset: {
-            currentAccessToken: 1,
-            refreshToken: 1,
-          },
-        },
-      );
-      if (adminUpdate.matchedCount === 0) {
-        await this.sellerModel.updateOne(
-          { _id: userId },
-          {
-            $unset: {
-              currentAccessToken: 1,
-              refreshToken: 1,
-            },
-          },
-        );
-      }
-    }
     return { message: 'Logged out successfully' };
   }
 
@@ -475,30 +387,12 @@ export class AuthService {
 
   // ================= Forgot Password =================
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
-    let user = await this.userModel.findOne({
+    const user = await this.userModel.findOne({
       $or: [
         { email: forgotPasswordDto.email },
         { phone: forgotPasswordDto.phone },
       ],
     });
-
-    if (!user) {
-      user = await this.adminModel.findOne({
-        $or: [
-          { email: forgotPasswordDto.email },
-          { phone: forgotPasswordDto.phone },
-        ],
-      }) as any;
-    }
-
-    if (!user) {
-      user = await this.sellerModel.findOne({
-        $or: [
-          { email: forgotPasswordDto.email },
-          { phone: forgotPasswordDto.phone },
-        ],
-      }) as any;
-    }
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -516,24 +410,9 @@ export class AuthService {
 
   // ================= Reset Password =================
   async resetPassword(dto: ResetPasswordDto) {
-    let user = await this.userModel.findOne({
+    const user = await this.userModel.findOne({
       $or: [{ email: dto.email }, { phone: dto.phone }],
     });
-    let modelUsed: Model<any> = this.userModel;
-
-    if (!user) {
-      user = await this.adminModel.findOne({
-        $or: [{ email: dto.email }, { phone: dto.phone }],
-      }) as any;
-      modelUsed = this.adminModel;
-    }
-
-    if (!user) {
-      user = await this.sellerModel.findOne({
-        $or: [{ email: dto.email }, { phone: dto.phone }],
-      }) as any;
-      modelUsed = this.sellerModel;
-    }
 
     if (!user) {
       throw new NotFoundException('User not found');
