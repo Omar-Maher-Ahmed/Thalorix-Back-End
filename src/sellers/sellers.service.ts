@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Seller, SellerDocument } from './schema/seller.schema';
 import { Review, ReviewDocument } from './schema/review.schema';
 import { Template } from '../templates/schema/template.schema';
+import { Order, OrderDocument } from '../orders/schema/order.schema';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
 import { UpdateSellerDto } from './dto/update-seller.dto';
@@ -32,6 +33,8 @@ export class SellersService {
     private readonly reviewModel: Model<ReviewDocument>,
     @InjectModel(Template.name)
     private readonly templateModel: Model<any>,
+    @InjectModel(Order.name)
+    private readonly orderModel: Model<OrderDocument>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
     private readonly auditLogService: AuditLogService,
@@ -421,6 +424,54 @@ export class SellersService {
     );
 
     return review;
+  }
+
+  // ================= Get Active Sellers (with at least 1 completed order) =================
+  async getActiveSellers() {
+    const results = await this.sellerModel.aggregate([
+      // Step 1: Only active, non-deleted sellers
+      { $match: { isActive: true, isDeleted: { $ne: true } } },
+      // Step 2: Join with orders collection on seller field
+      {
+        $lookup: {
+          from: 'orders',
+          localField: '_id',
+          foreignField: 'seller',
+          as: 'orders',
+        },
+      },
+      // Step 3: Count completed orders only
+      {
+        $addFields: {
+          completedOrdersCount: {
+            $size: {
+              $filter: {
+                input: '$orders',
+                as: 'order',
+                cond: { $eq: ['$$order.orderStatus', 'completed'] },
+              },
+            },
+          },
+        },
+      },
+      // Step 4: Keep only sellers with at least 1 completed order
+      { $match: { completedOrdersCount: { $gte: 1 } } },
+      // Step 5: Shape the response
+      {
+        $project: {
+          password: 0,
+          currentAccessToken: 0,
+          refreshToken: 0,
+          orders: 0,
+        },
+      },
+      { $sort: { completedOrdersCount: -1, createdAt: -1 } },
+    ]);
+
+    return {
+      count: results.length,
+      sellers: results,
+    };
   }
 
   // ================= Delete Seller =================

@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { Seller, SellerSchema } from './schema/seller.schema';
 import { Review, ReviewSchema } from './schema/review.schema';
 import { Template, TemplateSchema } from '../templates/schema/template.schema';
+import { Order, OrderSchema } from '../orders/schema/order.schema';
 import { SellersService } from './sellers.service';
 import { SellersController } from './sellers.controller';
 import { OtpModule } from '../otp/otp.module';
@@ -16,6 +17,7 @@ import { CloudinaryModule } from '../services/cloudinary/cloudinary.module';
       { name: Seller.name, schema: SellerSchema },
       { name: Review.name, schema: ReviewSchema },
       { name: Template.name, schema: TemplateSchema },
+      { name: Order.name, schema: OrderSchema },
     ]),
     OtpModule,
     CloudinaryModule,

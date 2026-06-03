@@ -81,6 +81,37 @@ export class SellersController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
+    summary: 'Get active sellers with at least one completed order',
+    description: 'Returns all sellers that are active and have completed at least one order. Sorted by most completed orders first.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of active sellers with completed orders',
+    schema: {
+      example: {
+        count: 2,
+        sellers: [
+          {
+            _id: '665f8c7b123456789',
+            name: 'Ahmed Ali',
+            email: 'ahmed@example.com',
+            storeName: 'Ahmed Store',
+            isActive: true,
+            completedOrdersCount: 5,
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @Get('active')
+  async getActiveSellers() {
+    return await this.sellersService.getActiveSellers();
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Get seller by ID' })
   @ApiParam({ name: 'id', description: 'Seller MongoDB ObjectId' })
   @ApiResponse({ status: 200, description: 'Seller found.' })
