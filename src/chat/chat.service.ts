@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types, isValidObjectId } from 'mongoose';
 import { Message, MessageDocument } from './schema/message.schema';
@@ -16,6 +18,7 @@ export class ChatService {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Seller.name) private sellerModel: Model<Seller>,
     @InjectModel(Admin.name) private adminModel: Model<Admin>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async getUserOrSellerOrAdmin(id: string | Types.ObjectId) {
@@ -107,11 +110,17 @@ export class ChatService {
       conversation: conversation._id,
     });
 
-    // update lastMessage و unreadCount
+    // update lastMessage (dynamic unreadCount will be calculated on the fly)
     await this.conversationModel.findByIdAndUpdate(conversation._id, {
       lastMessage: message._id,
-      $inc: { unreadCount: 1 },
     });
+
+    // Invalidate caches
+    await this.cacheManager.del(`conv_list_${senderId}`);
+    await this.cacheManager.del(`conv_list_${dto.receiverId}`);
+    for(let i=1; i<=10; i++) {
+      await this.cacheManager.del(`chat_${conversation._id}_${i}`);
+    }
 
     const leanMessage = await this.messageModel.findById(message._id).lean();
     return this.populateMessage(leanMessage);
@@ -119,10 +128,23 @@ export class ChatService {
 
   async getConversationMessages(
     conversationId: string,
-    page = 1,
     userId: string,
+    page = 1,
     limit = 30,
   ) {
+    // Authorization Check
+    const conversation = await this.conversationModel.findById(conversationId).lean();
+    if (!conversation) throw new NotFoundException('Conversation not found');
+    const isParticipant = conversation.participants.some((p) => p.toString() === userId.toString());
+    if (!isParticipant) {
+      throw new UnauthorizedException('You are not a participant in this conversation');
+    }
+
+    // Cache Check
+    const cacheKey = `chat_${conversationId}_${page}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
     const skip = (page - 1) * limit;
     const messages = await this.messageModel
       .find({ conversation: new Types.ObjectId(conversationId) })
@@ -131,10 +153,16 @@ export class ChatService {
       .limit(limit)
       .lean();
 
-    return Promise.all(messages.map((msg) => this.populateMessage(msg)));
+    const result = await Promise.all(messages.map((msg) => this.populateMessage(msg)));
+    await this.cacheManager.set(cacheKey, result);
+    return result;
   }
 
   async getUserConversations(userId: string) {
+    const cacheKey = `conv_list_${userId}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
     const conversations = await this.conversationModel
       .find({
         participants: new Types.ObjectId(userId),
@@ -155,14 +183,23 @@ export class ChatService {
           lastMessage = await this.populateMessage(conv.lastMessage);
         }
 
+        // Dynamic Unread Count Calculation
+        const unreadCount = await this.messageModel.countDocuments({
+          conversation: conv._id,
+          receiver: new Types.ObjectId(userId),
+          isRead: false,
+        });
+
         return {
           ...conv,
+          unreadCount,
           participants,
           lastMessage,
         };
       })
     );
 
+    await this.cacheManager.set(cacheKey, populatedConversations);
     return populatedConversations;
   }
 
@@ -180,9 +217,7 @@ export class ChatService {
       },
     );
 
-    await this.conversationModel.findByIdAndUpdate(conversationId, {
-      unreadCount: 0,
-    });
+    await this.cacheManager.del(`conv_list_${userId}`);
   }
 
   async deleteMessage(messageId: string, userId: string) {
@@ -199,7 +234,16 @@ export class ChatService {
     message.content = 'This message was deleted';
     message.attachmentUrl = undefined;
 
-    return message.save();
+    await message.save();
+
+    // Invalidate caches
+    await this.cacheManager.del(`conv_list_${userId}`);
+    await this.cacheManager.del(`conv_list_${message.receiver.toString()}`);
+    for(let i=1; i<=10; i++) {
+      await this.cacheManager.del(`chat_${message.conversation.toString()}_${i}`);
+    }
+
+    return message;
   }
 
   async deleteConversation(conversationId: string, userId: string) {
@@ -224,6 +268,14 @@ export class ChatService {
   }
 
   async searchMessages(conversationId: string, query: string, userId: string) {
+    // Authorization Check
+    const conversation = await this.conversationModel.findById(conversationId).lean();
+    if (!conversation) throw new NotFoundException('Conversation not found');
+    const isParticipant = conversation.participants.some((p) => p.toString() === userId.toString());
+    if (!isParticipant) {
+      throw new UnauthorizedException('You are not a participant in this conversation');
+    }
+
     const messages = await this.messageModel
       .find({
         conversation: new Types.ObjectId(conversationId),

@@ -37,3 +37,6 @@ export class Message {
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
+
+MessageSchema.index({ conversation: 1, createdAt: -1 });
+MessageSchema.index({ conversation: 1, receiver: 1, isRead: 1 });
