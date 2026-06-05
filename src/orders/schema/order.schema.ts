@@ -54,6 +54,22 @@ export class Order {
   })
   template: mongoose.Types.ObjectId;
 
+  @Prop({
+    type: [{
+      template: { type: mongoose.Schema.Types.ObjectId, ref: 'Template', required: true },
+      seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      price: { type: Number, required: true },
+      quantity: { type: Number, default: 1 }
+    }],
+    default: []
+  })
+  items: Array<{
+    template: mongoose.Types.ObjectId;
+    seller: mongoose.Types.ObjectId;
+    price: number;
+    quantity: number;
+  }>;
+
   // Snapshot price
   @Prop({ required: true })
   price: number;

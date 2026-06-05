@@ -60,18 +60,33 @@ export class StripeController {
                 throw new BadRequestException(`Order ${orderId} is already paid`);
             }
 
-            // 5. Construct secure items from order & populated template
-            const template = order.template as any;
-            if (!template) {
-                throw new BadRequestException(`Template details not found in order ${orderId}`);
-            }
+            // 5. Construct secure items from order items or populated template
+            if (order.items && order.items.length > 0) {
+                for (const orderItem of order.items) {
+                    const template = orderItem.template as any;
+                    if (!template) {
+                        throw new BadRequestException(`Template details not found in order item`);
+                    }
+                    items.push({
+                        name: template.title,
+                        amount: Math.round(orderItem.price * 100), // convert to cents
+                        quantity: orderItem.quantity || 1,
+                        images: template.image ? template.image : undefined,
+                    });
+                }
+            } else {
+                const template = order.template as any;
+                if (!template) {
+                    throw new BadRequestException(`Template details not found in order ${orderId}`);
+                }
 
-            items.push({
-                name: template.title,
-                amount: Math.round(order.price * 100), // convert to cents
-                quantity: order.quantity || 1,
-                images: template.image ? template.image : undefined,
-            });
+                items.push({
+                    name: template.title,
+                    amount: Math.round(order.price * 100), // convert to cents
+                    quantity: order.quantity || 1,
+                    images: template.image ? template.image : undefined,
+                });
+            }
         }
 
         // 6. Call service to create session with comma-separated IDs

@@ -54,8 +54,11 @@ export class OrdersService {
       );
     }
 
-    // 2. Validate and create orders
-    const createdOrders = [];
+    // 2. Validate and build items list
+    const orderItems = [];
+    let totalAmount = 0;
+    let firstTemplate: any = null;
+
     for (const item of itemsToProcess) {
       const { templateId, quantity } = item;
       const template = await this.templateModel.findById(templateId);
@@ -69,34 +72,35 @@ export class OrdersService {
       }
 
       const price = template.price;
-      const totalAmount = price * quantity;
+      const amount = price * quantity;
+      totalAmount += amount;
 
-      const order = await this.orderModel.create({
-        buyer: userId,
-        seller: template.developerId,
+      if (!firstTemplate) {
+        firstTemplate = template;
+      }
+
+      orderItems.push({
         template: template._id,
+        seller: template.developerId,
         price,
         quantity,
-        totalAmount,
-        orderStatus: OrderStatus.PENDING,
-        paymentStatus: PaymentStatus.UNPAID,
       });
-
-      createdOrders.push(order);
     }
 
-    // If only a single order was created, return it directly to maintain backward compatibility.
-    // Otherwise, return a wrapped summary object containing all created orders.
-    if (createdOrders.length === 1) {
-      return createdOrders[0];
-    }
+    // Create a single Order document with the items array
+    const order = await this.orderModel.create({
+      buyer: userId,
+      seller: firstTemplate ? firstTemplate.developerId : null,
+      template: firstTemplate ? firstTemplate._id : null,
+      price: firstTemplate ? firstTemplate.price : 0,
+      quantity: itemsToProcess.length === 1 ? itemsToProcess[0].quantity : 1,
+      items: orderItems,
+      totalAmount,
+      orderStatus: OrderStatus.PENDING,
+      paymentStatus: PaymentStatus.UNPAID,
+    });
 
-    return {
-      message: 'Orders created successfully',
-      orders: createdOrders,
-      totalAmount: createdOrders.reduce((sum, o) => sum + o.totalAmount, 0),
-      orderIds: createdOrders.map(o => o._id.toString()),
-    };
+    return order;
   }
 
   // 📦 Get My Orders
@@ -104,6 +108,7 @@ export class OrdersService {
     return this.orderModel
       .find({ buyer: userId })
       .populate('template')
+      .populate('items.template')
       .sort({ createdAt: -1 });
   }
 
@@ -112,6 +117,8 @@ export class OrdersService {
     const order = await this.orderModel
       .findById(orderId)
       .populate('template')
+      .populate('items.template')
+      .populate('items.seller', '-password')
       .populate('buyer', '-password')
       .populate('seller', '-password');
 
@@ -120,14 +127,22 @@ export class OrdersService {
     }
 
     const buyerIdStr = order.buyer ? (order.buyer._id || order.buyer).toString() : '';
-    const sellerIdStr = order.seller
-      ? (order.seller._id || order.seller).toString()
-      : (order.populated('seller') || '').toString();
+    
+    let isSeller = false;
+    if (order.seller) {
+      const sellerIdStr = (order.seller._id || order.seller).toString();
+      if (sellerIdStr === userId.toString()) {
+        isSeller = true;
+      }
+    }
+    if (!isSeller && order.items && order.items.length > 0) {
+      isSeller = order.items.some(item => {
+        const itemSellerId = item.seller ? (item.seller._id || item.seller).toString() : '';
+        return itemSellerId === userId.toString();
+      });
+    }
 
-    if (
-      buyerIdStr !== userId.toString() &&
-      sellerIdStr !== userId.toString()
-    ) {
+    if (buyerIdStr !== userId.toString() && !isSeller) {
       throw new ForbiddenException('You are not allowed to view this order');
     }
 
@@ -203,7 +218,14 @@ export class OrdersService {
     }
 
     // 👮‍♂️ فقط البائع (أو admin مستقبلاً)
-    if (order.seller.toString() !== sellerId) {
+    let isSeller = false;
+    if (order.seller && order.seller.toString() === sellerId) {
+      isSeller = true;
+    } else if (order.items && order.items.length > 0) {
+      isSeller = order.items.some(item => item.seller.toString() === sellerId);
+    }
+
+    if (!isSeller) {
       throw new ForbiddenException('Only seller can refund this order');
     }
 
