@@ -107,7 +107,7 @@ export class StripeController {
     @ApiOperation({ summary: 'Handle Stripe Webhook', description: 'Handles webhook events from Stripe' })
     @ApiHeader({ name: 'stripe-signature', description: 'Stripe webhook signature', required: true })
     @ApiResponse({ status: 200, description: 'Webhook handled successfully' })
-    @Post(process.env.STRIPE_WEBHOOK_PATH || 'webhook')
+    @Post('webhook')
     @HttpCode(HttpStatus.OK)
     async handleWebhook(
         @Req() req: RawBodyRequest<Request>,

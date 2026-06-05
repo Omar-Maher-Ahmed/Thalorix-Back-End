@@ -24,6 +24,7 @@ async function bootstrap() {
   app.use(
     express.json({
       verify: (req: any, res, buf) => {
+        req.rawBody = buf;
         // check body before processing
         const body = buf.toString();
         // if HTML tags
