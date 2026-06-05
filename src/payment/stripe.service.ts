@@ -25,17 +25,29 @@ export class StripeService {
   ) {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: items.map(item => ({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: item.name,
-            images: item.images ? [item.images] : undefined,
+      line_items: items.map(item => {
+        let validImages = undefined;
+        if (item.images && Array.isArray(item.images)) {
+          const httpImages = item.images.filter(img => typeof img === 'string' && img.startsWith('http'));
+          if (httpImages.length > 0) {
+            validImages = httpImages.slice(0, 8); // Stripe allows max 8 images
+          }
+        } else if (typeof item.images === 'string' && item.images.startsWith('http')) {
+          validImages = [item.images];
+        }
+
+        return {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: item.name,
+              images: validImages,
+            },
+            unit_amount: item.amount,
           },
-          unit_amount: item.amount,
-        },
-        quantity: item.quantity || 1,
-      })),
+          quantity: item.quantity || 1,
+        };
+      }),
       mode: 'payment',
       success_url: successUrl || this.configService.get('FRONTEND_SUCCESS_URL'),
       cancel_url: cancelUrl || this.configService.get('FRONTEND_CANCEL_URL'),
