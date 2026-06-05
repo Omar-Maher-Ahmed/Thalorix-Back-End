@@ -1,10 +1,17 @@
-import { IsOptional, IsString } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsArray } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCheckoutSessionDto {
-  @ApiProperty({ description: 'Order ID to create payment session for', example: '60d5ecb8b392d7001f8e8e30' })
+  @ApiPropertyOptional({ description: 'Order ID to create payment session for', example: '60d5ecb8b392d7001f8e8e30' })
+  @IsOptional()
   @IsString()
-  orderId: string;
+  orderId?: string;
+
+  @ApiPropertyOptional({ description: 'List of Order IDs to create payment session for', example: ['60d5ecb8b392d7001f8e8e30'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  orderIds?: string[];
 
   @ApiPropertyOptional({ description: 'Frontend success URL for redirect', example: 'http://localhost:3000/success' })
   @IsOptional()

@@ -38,40 +38,47 @@ export class StripeController {
     @ApiResponse({ status: 403, description: 'Forbidden' })
     @Post('create-checkout-session')
     async createCheckoutSession(@Req() req: any, @Body() createCheckoutDto: CreateCheckoutSessionDto) {
-        // 1. Fetch order from DB
-        const order = await this.ordersService.findOne(createCheckoutDto.orderId, req.user.userId);
-        
-        // 2. Validate that the logged-in user is the buyer of this order
-        const buyerIdStr = order.buyer ? (order.buyer._id || order.buyer).toString() : '';
-        if (buyerIdStr !== req.user.userId.toString()) {
-            throw new ForbiddenException('You are not allowed to check out this order');
+        // 1. Resolve orderIds to process
+        const orderIds = createCheckoutDto.orderIds || (createCheckoutDto.orderId ? [createCheckoutDto.orderId] : []);
+        if (orderIds.length === 0) {
+            throw new BadRequestException('Either orderId or orderIds must be provided');
         }
 
-        // 3. Validate that the order is unpaid
-        if (order.paymentStatus !== PaymentStatus.UNPAID) {
-            throw new BadRequestException('Order is already paid');
-        }
+        const items = [];
+        for (const orderId of orderIds) {
+            // 2. Fetch order from DB
+            const order = await this.ordersService.findOne(orderId, req.user.userId);
+            
+            // 3. Validate that the logged-in user is the buyer of this order
+            const buyerIdStr = order.buyer ? (order.buyer._id || order.buyer).toString() : '';
+            if (buyerIdStr !== req.user.userId.toString()) {
+                throw new ForbiddenException(`You are not allowed to check out order ${orderId}`);
+            }
 
-        // 4. Construct secure items from order & populated template
-        const template = order.template as any;
-        if (!template) {
-            throw new BadRequestException('Template details not found in order');
-        }
+            // 4. Validate that the order is unpaid
+            if (order.paymentStatus !== PaymentStatus.UNPAID) {
+                throw new BadRequestException(`Order ${orderId} is already paid`);
+            }
 
-        const items = [
-            {
+            // 5. Construct secure items from order & populated template
+            const template = order.template as any;
+            if (!template) {
+                throw new BadRequestException(`Template details not found in order ${orderId}`);
+            }
+
+            items.push({
                 name: template.title,
                 amount: Math.round(order.price * 100), // convert to cents
                 quantity: order.quantity || 1,
                 images: template.image ? template.image : undefined,
-            }
-        ];
+            });
+        }
 
-        // 5. Call service to create session
+        // 6. Call service to create session with comma-separated IDs
         const session = await this.stripeService.createCheckoutSession(
             items,
             req.user.email,
-            order._id.toString(),
+            orderIds.join(','),
             createCheckoutDto.successUrl,
             createCheckoutDto.cancelUrl,
         );
@@ -129,14 +136,17 @@ export class StripeController {
     }
 
     private async handleCheckoutSessionCompleted(session: any) {
-        const orderId = session.metadata?.orderId;
-        if (orderId) {
-            console.log(`Payment successful for order: ${orderId}`);
-            try {
-                await this.ordersService.markAsPaid(orderId);
-                console.log(`Order ${orderId} marked as PAID`);
-            } catch (error) {
-                console.error(`Error marking order ${orderId} as paid:`, error.message);
+        const orderIdMetadata = session.metadata?.orderId;
+        if (orderIdMetadata) {
+            const orderIds = orderIdMetadata.split(',');
+            console.log(`Payment successful for orders: ${orderIds.join(', ')}`);
+            for (const orderId of orderIds) {
+                try {
+                    await this.ordersService.markAsPaid(orderId);
+                    console.log(`Order ${orderId} marked as PAID`);
+                } catch (error) {
+                    console.error(`Error marking order ${orderId} as paid:`, error.message);
+                }
             }
         } else {
             console.warn('Payment successful but no orderId found in metadata for session:', session.id);
@@ -156,14 +166,17 @@ export class StripeController {
     }
 
     private async handlePaymentIntentFailed(paymentIntent: any) {
-        const orderId = paymentIntent.metadata?.orderId;
-        if (orderId) {
-            console.log(`Payment failed for order: ${orderId}`);
-            try {
-                await this.ordersService.markAsFailed(orderId);
-                console.log(`Order ${orderId} marked as FAILED`);
-            } catch (error) {
-                console.error(`Error marking order ${orderId} as failed:`, error.message);
+        const orderIdMetadata = paymentIntent.metadata?.orderId;
+        if (orderIdMetadata) {
+            const orderIds = orderIdMetadata.split(',');
+            console.log(`Payment failed for orders: ${orderIds.join(', ')}`);
+            for (const orderId of orderIds) {
+                try {
+                    await this.ordersService.markAsFailed(orderId);
+                    console.log(`Order ${orderId} marked as FAILED`);
+                } catch (error) {
+                    console.error(`Error marking order ${orderId} as failed:`, error.message);
+                }
             }
         } else {
             console.warn('Payment failed but no orderId found in metadata for paymentIntent:', paymentIntent.id);

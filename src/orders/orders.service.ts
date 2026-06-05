@@ -33,52 +33,70 @@ export class OrdersService {
 
   // 🛒 Create Order
   async create(userId: string, createOrderDto: CreateOrderDto) {
-    const { templateId } = createOrderDto;
-    const quantity = createOrderDto.quantity || 1;
+    // 1. Gather all items to process
+    const itemsToProcess: { templateId: string; quantity: number }[] = [];
 
-    const template = await this.templateModel.findById(templateId);
-
-    if (!template) {
-      throw new NotFoundException('Template not found');
+    if (createOrderDto.items && createOrderDto.items.length > 0) {
+      itemsToProcess.push(...createOrderDto.items);
+    } else if (createOrderDto.templateIds && createOrderDto.templateIds.length > 0) {
+      const qty = createOrderDto.quantity || 1;
+      for (const tid of createOrderDto.templateIds) {
+        itemsToProcess.push({ templateId: tid, quantity: qty });
+      }
+    } else if (createOrderDto.templateId) {
+      itemsToProcess.push({
+        templateId: createOrderDto.templateId,
+        quantity: createOrderDto.quantity || 1,
+      });
+    } else {
+      throw new BadRequestException(
+        'At least one templateId, templateIds, or items array must be provided',
+      );
     }
 
-    if (!template.isActive) {
-      throw new BadRequestException('Template is not active');
+    // 2. Validate and create orders
+    const createdOrders = [];
+    for (const item of itemsToProcess) {
+      const { templateId, quantity } = item;
+      const template = await this.templateModel.findById(templateId);
+
+      if (!template) {
+        throw new NotFoundException(`Template with ID ${templateId} not found`);
+      }
+
+      if (!template.isActive) {
+        throw new BadRequestException(`Template ${template.title || templateId} is not active`);
+      }
+
+      const price = template.price;
+      const totalAmount = price * quantity;
+
+      const order = await this.orderModel.create({
+        buyer: userId,
+        seller: template.developerId,
+        template: template._id,
+        price,
+        quantity,
+        totalAmount,
+        orderStatus: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.UNPAID,
+      });
+
+      createdOrders.push(order);
     }
 
-    // ❌ منع شراء المنتج من نفسك (Disabled for testing)
-    // if (template.developerId.toString() === userId) {
-    //   throw new BadRequestException('You cannot purchase your own template');
-    // }
+    // If only a single order was created, return it directly to maintain backward compatibility.
+    // Otherwise, return a wrapped summary object containing all created orders.
+    if (createdOrders.length === 1) {
+      return createdOrders[0];
+    }
 
-    // ❌ منع duplicate unpaid order (Disabled for testing)
-    // const existingOrder = await this.orderModel.findOne({
-    //   buyer: userId,
-    //   template: templateId,
-    //   paymentStatus: PaymentStatus.UNPAID,
-    // });
-
-    // if (existingOrder) {
-    //   throw new BadRequestException(
-    //     'You already have a pending order for this template',
-    //   );
-    // }
-
-    const price = template.price;
-    const totalAmount = price * quantity;
-
-    const order = await this.orderModel.create({
-      buyer: userId,
-      seller: template.developerId,
-      template: template._id,
-      price,
-      quantity,
-      totalAmount,
-      orderStatus: OrderStatus.PENDING,
-      paymentStatus: PaymentStatus.UNPAID,
-    });
-
-    return order;
+    return {
+      message: 'Orders created successfully',
+      orders: createdOrders,
+      totalAmount: createdOrders.reduce((sum, o) => sum + o.totalAmount, 0),
+      orderIds: createdOrders.map(o => o._id.toString()),
+    };
   }
 
   // 📦 Get My Orders
