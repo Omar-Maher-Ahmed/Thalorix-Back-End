@@ -19,6 +19,8 @@ import { Role } from 'src/auth/decorators/roles.decorator';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { LoginAdminDto } from './dto/login-admin.dto';
+import { ChangePasswordDto } from '../users/dto/change-password.dto';
+
 
 @ApiTags('Admins')
 @Controller('admins')
@@ -109,4 +111,26 @@ export class AdminController {
   login(@Body() dto: LoginAdminDto) {
     return this.adminService.Login(dto);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change password for an admin' })
+  @ApiParam({ name: 'id', description: 'Admin ID', type: String })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @Patch(':id/change-password')
+  changePassword(
+    @Param('id') id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Request() req: any,
+  ) {
+    return this.adminService.changePassword(
+      id,
+      changePasswordDto,
+      req.user?.userId || req.user?.sub,
+    );
+  }
 }
+

@@ -24,6 +24,8 @@ import { OtpService } from '../otp/otp.service';
 import { OtpType } from '../otp/schema/otp.schema';
 import { AuditLogService } from '../audit/audit-log.service';
 import { Types } from 'mongoose';
+import { ChangePasswordDto } from '../users/dto/change-password.dto';
+
 
 @Injectable()
 export class SellersService {
@@ -260,7 +262,11 @@ export class SellersService {
 
   // ================= Get Seller By ID =================
   async getSellerById(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid Seller ID format');
+    }
     const seller = await this.sellerModel
+
       .findOne({ _id: id, isDeleted: { $ne: true } })
       .select('-password -currentAccessToken -refreshToken')
       .lean();
@@ -274,6 +280,10 @@ export class SellersService {
 
   // ================= Update Seller =================
   async updateSeller(id: string, dto: UpdateSellerDto, requesterId?: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid Seller ID format');
+    }
+
     // Check phone uniqueness if being changed
     if (dto.phone) {
       const existing = await this.sellerModel.findOne({
@@ -513,7 +523,11 @@ export class SellersService {
 
   // ================= Delete Seller =================
   async deleteSeller(id: string, requesterId?: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid Seller ID format');
+    }
     const deleted = await this.sellerModel
+
       .findOneAndUpdate({ _id: id, isDeleted: { $ne: true } }, { $set: { isDeleted: true } })
       .lean();
 
@@ -527,4 +541,69 @@ export class SellersService {
 
     return { message: 'Seller deleted successfully' };
   }
+
+  // ================= Change Password =================
+  async changePassword(id: string, dto: ChangePasswordDto, requesterId?: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid Seller ID format');
+    }
+
+    if (requesterId && requesterId.toString() !== id.toString()) {
+      throw new UnauthorizedException('You can only change your own password');
+    }
+
+    const seller = await this.sellerModel.findOne({ _id: id, isDeleted: { $ne: true } }).select('+password');
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    if (!seller.password) {
+      throw new BadRequestException('Seller does not have a password set');
+    }
+
+    const isMatch = await bcrypt.compare(dto.oldPassword, seller.password);
+    if (!isMatch) {
+      throw new BadRequestException('Invalid old password');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+    const payload = {
+      sub: seller._id.toString(),
+      email: seller.email,
+      role: seller.role,
+      jti: crypto.randomBytes(16).toString('hex'),
+    };
+
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: '15m',
+      secret: process.env.JWT_SECRET,
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: '7d',
+      secret: process.env.JWT_SECRET,
+    });
+
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    const hashedCurrentAccessToken = await bcrypt.hash(accessToken, 10);
+
+    await this.sellerModel.updateOne(
+      { _id: id },
+      { 
+        $set: {
+          password: hashedPassword,
+          currentAccessToken: hashedCurrentAccessToken,
+          refreshToken: hashedRefreshToken,
+        }
+      }
+    );
+
+    return { 
+      message: 'Password changed successfully',
+      accessToken,
+      refreshToken
+    };
+  }
 }
+

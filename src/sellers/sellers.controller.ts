@@ -30,6 +30,8 @@ import { LoginSellerDto } from './dto/login-seller.dto';
 import { UpdateSellerDto } from './dto/update-seller.dto';
 import { QuerySellerDto } from './dto/query-seller.dto';
 import { CloudinaryService } from '../services/cloudinary/cloudinary.service';
+import { ChangePasswordDto } from '../users/dto/change-password.dto';
+
 
 @ApiTags('Sellers')
 @Controller('seller')
@@ -242,4 +244,26 @@ export class SellersController {
     const userId = req.user?.userId || req.user?.sub;
     return await this.sellersService.addSellerReview(userId, id, dto);
   }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Change password for a seller' })
+  @ApiParam({ name: 'id', description: 'Seller ID' })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({ status: 200, description: 'Password changed successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @Patch(':id/change-password')
+  async changePassword(
+    @Param('id') id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Request() req: any,
+  ) {
+    return await this.sellersService.changePassword(
+      id,
+      changePasswordDto,
+      req.user?.userId || req.user?.sub,
+    );
+  }
 }
+
