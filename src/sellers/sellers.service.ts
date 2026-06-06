@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -13,7 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Seller, SellerDocument } from './schema/seller.schema';
 import { Review, ReviewDocument } from './schema/review.schema';
 import { Template } from '../templates/schema/template.schema';
-import { Order, OrderDocument } from '../orders/schema/order.schema';
+import { Order, OrderDocument, OrderStatus, PaymentStatus } from '../orders/schema/order.schema';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
 import { UpdateSellerDto } from './dto/update-seller.dto';
@@ -472,6 +473,42 @@ export class SellersService {
       count: results.length,
       sellers: results,
     };
+  }
+
+  // ================= Get Total Revenue (Seller Dashboard) =================
+  async getTotalRevenue(sellerId: string): Promise<{ totalRevenue: number }> {
+    if (!Types.ObjectId.isValid(sellerId)) {
+      throw new BadRequestException('Invalid seller ID format');
+    }
+
+    try {
+      const result = await this.orderModel.aggregate([
+        {
+          $match: {
+            seller: new Types.ObjectId(sellerId),
+            orderStatus: OrderStatus.COMPLETED,
+            paymentStatus: PaymentStatus.PAID,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: '$totalAmount' },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            totalRevenue: 1,
+          },
+        },
+      ]);
+
+      const totalRevenue = result.length > 0 ? result[0].totalRevenue : 0;
+      return { totalRevenue };
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to calculate total revenue');
+    }
   }
 
   // ================= Delete Seller =================

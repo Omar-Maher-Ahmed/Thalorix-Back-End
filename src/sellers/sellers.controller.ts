@@ -110,6 +110,29 @@ export class SellersController {
     return await this.sellersService.getActiveSellers();
   }
 
+  // ─────────────────────────────────────────
+  // DASHBOARD ENDPOINTS (protected)
+  // ─────────────────────────────────────────
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
+    summary: 'Get total revenue for the authenticated seller',
+    description:
+      'Returns the total revenue earned from orders where orderStatus is "completed" and paymentStatus is "paid". Cancelled, refunded, and failed orders are excluded.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Total revenue calculated successfully.',
+    schema: { example: { totalRevenue: 25000 } },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @Get('dashboard/revenue')
+  async getTotalRevenue(@Request() req: any) {
+    const sellerId = req.user?.sub || req.user?.userId;
+    return await this.sellersService.getTotalRevenue(sellerId);
+  }
+
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Get seller by ID' })
