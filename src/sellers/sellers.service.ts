@@ -521,6 +521,42 @@ export class SellersService {
     }
   }
 
+  // ================= Get Total Downloads (Seller Dashboard) =================
+  async getTotalDownloads(sellerId: string): Promise<{ totalDownloads: number }> {
+    if (!Types.ObjectId.isValid(sellerId)) {
+      throw new BadRequestException('Invalid seller ID format');
+    }
+
+    try {
+      const result = await this.orderModel.aggregate([
+        {
+          $match: {
+            seller: new Types.ObjectId(sellerId),
+            orderStatus: OrderStatus.COMPLETED,
+            paymentStatus: PaymentStatus.PAID,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalDownloads: { $sum: '$quantity' },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            totalDownloads: 1,
+          },
+        },
+      ]);
+
+      const totalDownloads = result.length > 0 ? result[0].totalDownloads : 0;
+      return { totalDownloads };
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to calculate total downloads');
+    }
+  }
+
   // ================= Delete Seller =================
   async deleteSeller(id: string, requesterId?: string) {
     if (!Types.ObjectId.isValid(id)) {

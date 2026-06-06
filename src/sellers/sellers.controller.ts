@@ -137,6 +137,25 @@ export class SellersController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
+    summary: 'Get total downloads for the authenticated seller',
+    description:
+      'Returns the total number of downloads from orders where orderStatus is "completed" and paymentStatus is "paid".',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Total downloads calculated successfully.',
+    schema: { example: { totalDownloads: 1200 } },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @Get('dashboard/downloads')
+  async getTotalDownloads(@Request() req: any) {
+    const sellerId = req.user?.sub || req.user?.userId;
+    return await this.sellersService.getTotalDownloads(sellerId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Get seller by ID' })
   @ApiParam({ name: 'id', description: 'Seller MongoDB ObjectId' })
   @ApiResponse({ status: 200, description: 'Seller found.' })
