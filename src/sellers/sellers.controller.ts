@@ -138,6 +138,24 @@ export class SellersController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({
+    summary: 'Get dashboard statistics for the authenticated seller',
+    description: 'Retrieves recent sales (last 5 unique buyers), recent reviews (last 5 reviews), top 5 best-selling products, and recent 5 sold products.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard statistics retrieved successfully.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @Get('dashboard/stats')
+  async getDashboardStats(@Request() req: any) {
+    const sellerId = req.user?.sub || req.user?.userId;
+    return await this.sellersService.getDashboardStats(sellerId);
+  }
+
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
     summary: 'Get total downloads for the authenticated seller',
     description:
       'Returns the total number of downloads from orders where orderStatus is "completed" and paymentStatus is "paid".',

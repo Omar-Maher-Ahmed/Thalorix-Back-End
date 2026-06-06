@@ -641,5 +641,182 @@ export class SellersService {
       refreshToken
     };
   }
+
+  // ================= Get Dashboard Stats (Recent Sales, Reviews, Top/Recent Products) =================
+  async getDashboardStats(sellerId: string) {
+    if (!Types.ObjectId.isValid(sellerId)) {
+      throw new BadRequestException('Invalid Seller ID format');
+    }
+
+    const sellerExists = await this.sellerModel.exists({ _id: sellerId, isDeleted: { $ne: true } });
+    if (!sellerExists) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    const sellerObjId = new Types.ObjectId(sellerId);
+
+    // Run queries in parallel using Promise.all for high performance
+    const [recentSales, recentReviews, topProducts, recentSoldProducts] = await Promise.all([
+      // 1. Recent Sales (Last 5 unique buyers who made paid orders)
+      this.orderModel.aggregate([
+        {
+          $match: {
+            seller: sellerObjId,
+            paymentStatus: PaymentStatus.PAID,
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        {
+          $group: {
+            _id: '$buyer',
+            latestPurchaseAt: { $first: '$createdAt' },
+            orderId: { $first: '$_id' },
+            totalAmount: { $first: '$totalAmount' },
+          },
+        },
+        { $sort: { latestPurchaseAt: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'buyerDetails',
+          },
+        },
+        { $unwind: '$buyerDetails' },
+        {
+          $project: {
+            _id: 0,
+            buyerId: '$_id',
+            name: '$buyerDetails.name',
+            email: '$buyerDetails.email',
+            phone: '$buyerDetails.phone',
+            avatarUrl: '$buyerDetails.avatarUrl',
+            latestPurchaseAt: 1,
+            orderId: 1,
+            totalAmount: 1,
+          },
+        },
+      ]),
+
+      // 2. Recent Reviews (Last 5 reviews left for this seller)
+      this.reviewModel
+        .find({ sellerId: sellerObjId })
+        .populate({ path: 'userId', select: 'name username avatarUrl email' })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+
+      // 3. Top 5 Best-Selling Products (by total quantity sold)
+      this.orderModel.aggregate([
+        {
+          $match: {
+            seller: sellerObjId,
+            paymentStatus: PaymentStatus.PAID,
+          },
+        },
+        { $unwind: '$items' },
+        {
+          $match: {
+            'items.seller': sellerObjId,
+          },
+        },
+        {
+          $group: {
+            _id: '$items.template',
+            totalSoldQuantity: { $sum: '$items.quantity' },
+            totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+            lastSoldAt: { $max: '$createdAt' },
+          },
+        },
+        { $sort: { totalSoldQuantity: -1, totalRevenue: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'templates',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'templateDetails',
+          },
+        },
+        { $unwind: '$templateDetails' },
+        {
+          $project: {
+            _id: 0,
+            templateId: '$_id',
+            title: '$templateDetails.title',
+            price: '$templateDetails.price',
+            image: '$templateDetails.image',
+            totalSoldQuantity: 1,
+            totalRevenue: 1,
+            lastSoldAt: 1,
+          },
+        },
+      ]),
+
+      // 4. Recent Sold Products (Last 5 individual products sold recently)
+      this.orderModel.aggregate([
+        {
+          $match: {
+            seller: sellerObjId,
+            paymentStatus: PaymentStatus.PAID,
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        { $unwind: '$items' },
+        {
+          $match: {
+            'items.seller': sellerObjId,
+          },
+        },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'templates',
+            localField: 'items.template',
+            foreignField: '_id',
+            as: 'templateDetails',
+          },
+        },
+        { $unwind: '$templateDetails' },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'buyer',
+            foreignField: '_id',
+            as: 'buyerDetails',
+          },
+        },
+        { $unwind: '$buyerDetails' },
+        {
+          $project: {
+            _id: 0,
+            orderId: '$_id',
+            templateId: '$items.template',
+            title: '$templateDetails.title',
+            price: '$items.price',
+            quantity: '$items.quantity',
+            image: '$templateDetails.image',
+            soldAt: '$createdAt',
+            buyer: {
+              id: '$buyerDetails._id',
+              name: '$buyerDetails.name',
+              email: '$buyerDetails.email',
+              avatarUrl: '$buyerDetails.avatarUrl',
+            },
+          },
+        },
+      ]),
+    ]);
+
+    return {
+      recentSales,
+      recentReviews,
+      topProducts,
+      recentSoldProducts,
+    };
+  }
 }
+
 
