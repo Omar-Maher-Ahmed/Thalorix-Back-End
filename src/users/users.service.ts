@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, isValidObjectId, Types } from 'mongoose';
@@ -11,6 +12,10 @@ import { QueryUserDto } from './dto/query-user.dto';
 import { AuditLogService } from '../audit/audit-log.service';
 import { FriendRequest } from '../friend-request/schema/friend-request.schema';
 import { Seller } from '../sellers/schema/seller.schema';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -22,6 +27,7 @@ export class UsersService {
     @InjectModel(Seller.name)
     private readonly sellerModel: Model<Seller>,
     private readonly auditLogService: AuditLogService,
+    private readonly jwtService: JwtService,
   ) { }
 
   // ================= Find All =================
@@ -53,7 +59,11 @@ export class UsersService {
 
   // ================= Update =================
   async update(id: string, dto: UpdateUserDto, requesterId?: string) {
-    if (requesterId && requesterId === id) {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid User ID format');
+    }
+
+    if (requesterId && requesterId.toString() === id) {
       if (dto.role && dto.role !== 'admin') {
         throw new BadRequestException('You cannot demote yourself from Admin role');
       }
@@ -94,12 +104,77 @@ export class UsersService {
     };
   }
 
+  // ================= Change Password =================
+  async changePassword(id: string, dto: ChangePasswordDto, requesterId?: string) {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid User ID format');
+    }
+
+    if (requesterId && requesterId.toString() !== id) {
+      throw new UnauthorizedException('You can only change your own password');
+    }
+
+    const user = await this.userModel.findOne({ _id: id, isDeleted: { $ne: true } }).select('+password');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    if (!user.password) {
+      throw new BadRequestException('User does not have a password set');
+    }
+
+    const isMatch = await bcrypt.compare(dto.oldPassword, user.password);
+    if (!isMatch) {
+      throw new BadRequestException('Invalid old password');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+    const payload = {
+      sub: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      jti: crypto.randomBytes(16).toString('hex'),
+    };
+
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: '15m',
+      secret: process.env.JWT_SECRET,
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: '7d',
+      secret: process.env.JWT_SECRET,
+    });
+
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    const hashedCurrentAccessToken = await bcrypt.hash(accessToken, 10);
+
+    await this.userModel.updateOne(
+      { _id: id },
+      { 
+        $set: {
+          password: hashedPassword,
+          currentAccessToken: hashedCurrentAccessToken,
+          refreshToken: hashedRefreshToken,
+        },
+        $inc: { tokenVersion: 1 }
+      }
+    );
+
+    return { 
+      message: 'Password changed successfully',
+      accessToken,
+      refreshToken
+    };
+  }
+
   // ================= Remove =================
   async remove(id: string, requesterId?: string) {
     if (!isValidObjectId(id)) {
       throw new BadRequestException('Invalid User ID format');
     }
-    if (requesterId && requesterId === id) {
+    if (requesterId && requesterId.toString() === id) {
       throw new BadRequestException('You cannot delete your own admin account');
     }
     const user = await this.userModel.findOneAndUpdate(

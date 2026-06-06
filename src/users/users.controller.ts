@@ -14,6 +14,7 @@ import { UsersService } from './users.service';
 import { UpdateUserDto } from '../auth/dto';
 import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { QueryUserDto } from './dto/query-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('Users')
@@ -188,5 +189,20 @@ export class UsersController {
   @Get(':id/mutual-friends')
   getMutualFriends(@Param('id') id: string, @Request() req: any) {
     return this.usersService.getMutualFriends(req.user?.userId, id);
+  }
+
+  // ================= Change Password =================
+  @ApiOperation({ summary: 'Change Password', description: 'Change the password of an existing user' })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'User ID', type: String })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/change-password')
+  changePassword(@Param('id') id: string, @Body() changePasswordDto: ChangePasswordDto, @Request() req: any) {
+    return this.usersService.changePassword(id, changePasswordDto, req.user?.userId);
   }
 }
