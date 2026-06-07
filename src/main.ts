@@ -24,7 +24,15 @@ async function bootstrap() {
   app.use(
     express.json({
       verify: (req: any, res, buf) => {
+        // Always store rawBody for Stripe webhook signature verification
         req.rawBody = buf;
+
+        // Skip security validation for Stripe webhook endpoint
+        const url: string = req.originalUrl || req.url || '';
+        if (url.includes('/stripe/webhook')) {
+          return;
+        }
+
         // check body before processing
         const body = buf.toString();
         // if HTML tags
