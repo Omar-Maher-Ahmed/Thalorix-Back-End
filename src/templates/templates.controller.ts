@@ -71,10 +71,40 @@ export class TemplateController {
   @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'fileUrl', maxCount: 1 },
-      { name: 'image', maxCount: 1 },
-    ]),
+    FileFieldsInterceptor(
+      [
+        { name: 'fileUrl', maxCount: 1 },
+        { name: 'image', maxCount: 1 },
+      ],
+      {
+        fileFilter: (req, file, cb) => {
+          if (file.fieldname === 'image') {
+            if (!file.mimetype.startsWith('image/')) {
+              return cb(new BadRequestException('Only image files are allowed for thumbnail'), false);
+            }
+            cb(null, true);
+          } else if (file.fieldname === 'fileUrl') {
+            const allowedMimeTypes = [
+              'application/pdf',
+              'application/zip',
+              'application/x-zip-compressed',
+              'application/x-rar-compressed',
+              'application/vnd.rar',
+              'application/octet-stream', // Some browsers send zip/rar as octet-stream
+            ];
+            if (!file.mimetype.startsWith('image/') && !allowedMimeTypes.includes(file.mimetype)) {
+              return cb(
+                new BadRequestException('Only PDF, ZIP, RAR, or Image files are allowed for template file'),
+                false,
+              );
+            }
+            cb(null, true);
+          } else {
+            cb(null, true);
+          }
+        },
+      }
+    ),
   )
   async create(
     @Body() dto: CreateTemplateDto,
@@ -185,10 +215,40 @@ export class TemplateController {
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'fileUrl', maxCount: 1 },
-      { name: 'image', maxCount: 1 },
-    ]),
+    FileFieldsInterceptor(
+      [
+        { name: 'fileUrl', maxCount: 1 },
+        { name: 'image', maxCount: 1 },
+      ],
+      {
+        fileFilter: (req, file, cb) => {
+          if (file.fieldname === 'image') {
+            if (!file.mimetype.startsWith('image/')) {
+              return cb(new BadRequestException('Only image files are allowed for thumbnail'), false);
+            }
+            cb(null, true);
+          } else if (file.fieldname === 'fileUrl') {
+            const allowedMimeTypes = [
+              'application/pdf',
+              'application/zip',
+              'application/x-zip-compressed',
+              'application/x-rar-compressed',
+              'application/vnd.rar',
+              'application/octet-stream',
+            ];
+            if (!file.mimetype.startsWith('image/') && !allowedMimeTypes.includes(file.mimetype)) {
+              return cb(
+                new BadRequestException('Only PDF, ZIP, RAR, or Image files are allowed for template file'),
+                false,
+              );
+            }
+            cb(null, true);
+          } else {
+            cb(null, true);
+          }
+        },
+      }
+    ),
   )
   async update(
     @Param('id') id: string,
