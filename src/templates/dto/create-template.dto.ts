@@ -33,4 +33,24 @@ export class CreateTemplateDto {
     @IsOptional()
     @IsString()
     image?: string;
+
+    @ApiPropertyOptional({ description: 'Size of the template file', example: '2.5 MB' })
+    @IsOptional()
+    @IsString()
+    fileSize?: string;
+
+    @ApiPropertyOptional({ description: 'Format of the template file', example: 'ZIP / Figma' })
+    @IsOptional()
+    @IsString()
+    format?: string;
+
+    @ApiPropertyOptional({ description: 'Dimensions if applicable', example: '1920x1080' })
+    @IsOptional()
+    @IsString()
+    dimensions?: string;
+
+    @ApiPropertyOptional({ description: 'License type', example: 'Standard License' })
+    @IsOptional()
+    @IsString()
+    license?: string;
 }

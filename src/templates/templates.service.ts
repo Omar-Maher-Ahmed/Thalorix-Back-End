@@ -52,6 +52,10 @@ export class TemplateService {
         price: createDto.price,
         fileUrl: createDto.fileUrl,
         image: createDto.image,
+        fileSize: createDto.fileSize,
+        format: createDto.format,
+        dimensions: createDto.dimensions,
+        license: createDto.license,
         developerId: new Types.ObjectId(user.userId),
         categoryId: new Types.ObjectId(createDto.categoryId),
       });
@@ -186,6 +190,10 @@ export class TemplateService {
       template.price = dto.price ?? template.price;
       if (dto.fileUrl) template.fileUrl = dto.fileUrl;
       if (dto.image) template.image = dto.image;
+      if (dto.fileSize) template.fileSize = dto.fileSize;
+      if (dto.format) template.format = dto.format;
+      if (dto.dimensions) template.dimensions = dto.dimensions;
+      if (dto.license) template.license = dto.license;
 
       await template.save();
 

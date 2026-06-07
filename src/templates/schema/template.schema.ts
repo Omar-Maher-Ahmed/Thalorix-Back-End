@@ -23,8 +23,20 @@ export class Template {
   @Prop({ required: false })
   image?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Seller', required: true })
   developerId: Types.ObjectId;
+
+  @Prop({ required: false })
+  fileSize?: string;
+
+  @Prop({ required: false })
+  format?: string;
+
+  @Prop({ required: false })
+  dimensions?: string;
+
+  @Prop({ required: false })
+  license?: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
   categoryId: Types.ObjectId;

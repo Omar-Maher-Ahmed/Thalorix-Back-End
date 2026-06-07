@@ -218,10 +218,14 @@ export class AuthService {
       const payload = this.jwtService.verify(refreshToken, {
         secret: process.env.JWT_SECRET,
       });
-      const user = await this.userModel
-        .findById(payload.sub)
-        .select('+refreshToken +currentAccessToken')
-        .exec();
+      let user: any;
+      if (payload.role === 'admin') {
+        user = await this.adminModel.findById(payload.sub).select('+refreshToken +currentAccessToken').exec();
+      } else if (payload.role === 'seller') {
+        user = await this.sellerModel.findById(payload.sub).select('+refreshToken +currentAccessToken').exec();
+      } else {
+        user = await this.userModel.findById(payload.sub).select('+refreshToken +currentAccessToken').exec();
+      }
 
       if (!user || !user.refreshToken) {
         throw new UnauthorizedException('Invalid refresh token');
