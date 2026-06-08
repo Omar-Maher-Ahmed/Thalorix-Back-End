@@ -31,7 +31,12 @@ interface ChatApiResponse {
   session_id: string;
   job_id?: string;
   reply_type?: string;
+  intent?: string;
+  reply?: string;
   message?: string;
+  files?: Array<{ path: string; content: string; language?: string }>;
+  build_errors?: string[];
+  build_duration_seconds?: number;
 }
 
 interface JobApiResponse {
@@ -136,25 +141,53 @@ export class AiBuilderService {
     return data;
   }
 
+  // Track whether we already warned about missing /ready (avoid log spam)
+  private readyEndpointMissing = false;
+
   /**
    * GET /ready — returns 503 while models load, 200 when ready.
-   * Always resolves (catches the 503 and returns its body).
+   * Falls back silently to GET /health if /ready doesn't exist (404).
+   * Only throws on genuine network errors (ECONNREFUSED etc.)
    */
   async ready(): Promise<{ ready: boolean; raw: ReadyResponse }> {
     try {
       const { data } = await this.http.get<ReadyResponse>('/ready');
       return { ready: true, raw: data };
     } catch (err) {
-      if (err?.response?.status === 503) {
+      const status: number | undefined = err?.response?.status;
+
+      if (status === 503) {
+        // Models still loading — expected during cold start
         return { ready: false, raw: err.response.data };
       }
+
+      if (status === 404) {
+        // /ready endpoint doesn't exist — fall back to /health silently
+        if (!this.readyEndpointMissing) {
+          this.logger.warn('AI Builder has no /ready endpoint — falling back to /health for readiness checks.');
+          this.readyEndpointMissing = true;
+        }
+        try {
+          const { data } = await this.http.get('/health');
+          return { ready: true, raw: data };
+        } catch {
+          throw new InternalServerErrorException('AI Builder is unreachable (/health also failed)');
+        }
+      }
+
+      if (status != null) {
+        // Any other HTTP response means server IS up
+        return { ready: true, raw: err.response?.data ?? {} };
+      }
+
+      // No response at all → server is genuinely unreachable
       throw new InternalServerErrorException(`AI Builder /ready failed: ${err.message}`);
     }
   }
 
   // ── 1. Generate Project ─────────────────────────────────────────────────────
 
-  async generateProject(dto: CreateProjectDto): Promise<ProjectDocument> {
+  async generateProject(dto: CreateProjectDto): Promise<ProjectDocument | ChatApiResponse> {
     const { prompt, stack, userId, session_id, output_preference } = dto;
 
     // ── Step 1: fire POST /chat (Direct) or POST /run (RunPod) ────────────────
@@ -188,6 +221,10 @@ export class AiBuilderService {
 
     if (!sessionId) {
       throw new InternalServerErrorException('AI Builder did not return a session_id');
+    }
+
+    if (chatData.reply_type === 'chat') {
+      return chatData;
     }
 
     // ── Step 2: persist skeleton project ─────────────────────────────────────
@@ -253,31 +290,77 @@ export class AiBuilderService {
 
       // ── Terminal: done / completed ───────────────────────────────────────────
       if (rawStatus === 'done' || rawStatus === 'completed') {
-        // RunPod wraps result under `output`; Direct uses `result`
-        const result = jobData.result ?? (jobData as any).output ?? {};
+        // ── Unwrap the actual result payload ──
+        // RunPod: { status, output: { ok, result: { reply_type, files, preview_url, ... } } }
+        // Direct: { status, result: { ... } } or flat
+        const outputWrapper = (jobData as any).output ?? {};
+        const result = outputWrapper.result        // RunPod: output.result
+          ?? jobData.result                         // Direct: top-level result
+          ?? outputWrapper                          // Fallback: output itself
+          ?? {};
 
-        const files: ProjectFile[] = (result.files ?? []).map((f: any) => ({
+        this.logger.log(`Job ${jobId} reply_type=${result.reply_type} intent=${result.intent} files=${(result.files||[]).length} preview=${result.preview_url ?? 'none'}`);
+
+        // ── Chat reply: no build, just a text response ──────────────────────────
+        if (result.reply_type === 'chat' || result.intent === 'general_chat') {
+          this.logger.log(`Job ${jobId} → chat reply, storing as message.`);
+          await this.projectModel.findByIdAndUpdate(projectId, {
+            status:      ProjectStatus.COMPLETED,
+            projectName: 'Chat Response',
+            jobId,
+            buildErrors: [],
+            files: [{
+              path:     '_chat_reply.md',
+              content:  result.reply ?? 'No reply.',
+              language: 'markdown',
+            }],
+          });
+          return;
+        }
+
+        // ── Build completed: extract all available data ──────────────────────────
+        // NOTE: files may be empty [] because AI Builder hosts them via preview_url
+        // We still store them if present; otherwise the frontend should show the preview iframe
+        const rawFiles = result.files ?? (jobData as any).files ?? [];
+        const files: ProjectFile[] = rawFiles.map((f: any) => ({
           path:     f.path,
           content:  f.content,
           language: f.language ?? '',
         }));
 
+        // Resolve project name: check result.project_name, project_id, session_id
+        const resolvedName = result.project_name
+          ?? (jobData as any).project_name
+          ?? result.project_id
+          ?? result.name
+          ?? (result.session_id && result.session_id !== 'default-session'
+               ? `project-${(result.session_id as string).slice(0, 8)}`
+               : null)
+          ?? `project-${Date.now()}`;
+
+        const resolvedPreview = result.preview_url
+          ?? (jobData as any).preview_url
+          ?? null;
+
+        const resolvedSessionId = result.session_id && result.session_id !== 'default-session'
+          ? result.session_id
+          : null;
+
         const updatePayload: any = {
           status:      ProjectStatus.COMPLETED,
-          previewUrl:  result.preview_url ?? null,
-          projectName: result.project_name ?? null,
+          previewUrl:  resolvedPreview,
+          projectName: resolvedName,
           files,
           jobId,
-          buildErrors: [],
+          buildErrors: result.build_errors ?? (jobData as any).build_errors ?? [],
         };
 
-        if (result.session_id) {
-          updatePayload.sessionId = result.session_id;
+        if (resolvedSessionId) {
+          updatePayload.sessionId = resolvedSessionId;
         }
 
         await this.projectModel.findByIdAndUpdate(projectId, updatePayload);
-
-        this.logger.log(`Project ${projectId} completed. preview=${result.preview_url ?? 'none'}`);
+        this.logger.log(`Project ${projectId} completed. files=${files.length} preview=${resolvedPreview ?? 'none'} name=${resolvedName}`);
         return;
       }
 
@@ -396,7 +479,7 @@ export class AiBuilderService {
 
   // ── 6. Edit Flow ────────────────────────────────────────────────────────────
 
-  async editProject(projectId: string, dto: EditProjectDto): Promise<ProjectDocument> {
+  async editProject(projectId: string, dto: EditProjectDto): Promise<ProjectDocument | ChatApiResponse> {
     const existing = await this.projectModel.findById(projectId);
     if (!existing) {
       throw new NotFoundException(`Project ${projectId} not found`);
@@ -421,6 +504,10 @@ export class AiBuilderService {
       const msg = err?.response?.data?.message ?? err.message;
       this.logger.error(`AI Builder ${chatEndpoint} (edit) failed: ${msg}`);
       throw new InternalServerErrorException(`AI Builder API error: ${msg}`);
+    }
+
+    if (chatData.reply_type === 'chat') {
+      return chatData;
     }
 
     // Reset document to building state

@@ -112,10 +112,16 @@ export class AiBuilderController {
   @HttpCode(HttpStatus.ACCEPTED)
   async generateProject(@Body() dto: CreateProjectDto): Promise<OutputAdapter> {
     try {
-      const project = await this.aiBuilderService.generateProject(dto);
+      const result = await this.aiBuilderService.generateProject(dto);
+
+      if ((result as any).reply_type === 'chat') {
+        return successResponse(result, 'AI returned a direct chat response');
+      }
+
+      const project = result as any;
       return successResponse(
         {
-          projectId: (project as any)._id,
+          projectId: project._id,
           sessionId: project.sessionId,
           jobId:     project.jobId,
           status:    project.status,
@@ -227,10 +233,16 @@ export class AiBuilderController {
     @Body() dto: EditProjectDto,
   ): Promise<OutputAdapter> {
     try {
-      const project = await this.aiBuilderService.editProject(id, dto);
+      const result = await this.aiBuilderService.editProject(id, dto);
+
+      if ((result as any).reply_type === 'chat') {
+        return successResponse(result, 'AI returned a direct chat response');
+      }
+
+      const project = result as any;
       return successResponse(
         {
-          projectId: (project as any)._id,
+          projectId: project._id,
           jobId:     project.jobId,
           status:    project.status,
         },
