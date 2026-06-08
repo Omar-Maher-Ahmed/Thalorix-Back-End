@@ -16,6 +16,9 @@ import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import { QueryUserDto } from './dto/query-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { Roles } from 'src/auth/enums/roles.enum';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Role } from 'src/auth/decorators/roles.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -92,6 +95,25 @@ export class UsersController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @Request() req: any) {
     return this.usersService.update(id, updateUserDto, req.user?.userId);
+  }
+
+  // ================= Admin Block/Unblock =================
+  @ApiOperation({ summary: 'Block user (Admin only)', description: 'Blocks a user from accessing the system by ID only' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Role(Roles.Admin)
+  @Patch(':id/ban')
+  adminBlockUser(@Param('id') id: string, @Request() req: any) {
+    return this.usersService.adminBlockUser(id, req.user?.userId);
+  }
+
+  @ApiOperation({ summary: 'Unblock user (Admin only)', description: 'Unblocks a user by ID only' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Role(Roles.Admin)
+  @Patch(':id/unban')
+  adminUnblockUser(@Param('id') id: string, @Request() req: any) {
+    return this.usersService.adminUnblockUser(id, req.user?.userId);
   }
 
   // ================= Remove =================

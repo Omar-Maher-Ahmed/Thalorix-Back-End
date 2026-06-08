@@ -104,6 +104,23 @@ export class UsersService {
     };
   }
 
+  // ================= Admin Block/Unblock =================
+  async adminBlockUser(id: string, adminId: string) {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid User ID format');
+    }
+    await this.update(id, { isBlocked: true }, adminId);
+    return { message: 'User blocked by Admin successfully' };
+  }
+
+  async adminUnblockUser(id: string, adminId: string) {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid User ID format');
+    }
+    await this.update(id, { isBlocked: false }, adminId);
+    return { message: 'User unblocked by Admin successfully' };
+  }
+
   // ================= Change Password =================
   async changePassword(id: string, dto: ChangePasswordDto, requesterId?: string) {
     if (!isValidObjectId(id)) {
