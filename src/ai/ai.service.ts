@@ -155,7 +155,7 @@ export class AiBuilderService {
   // ── 1. Generate Project ─────────────────────────────────────────────────────
 
   async generateProject(dto: CreateProjectDto): Promise<ProjectDocument> {
-    const { prompt, stack, userId } = dto;
+    const { prompt, stack, userId, session_id, output_preference } = dto;
 
     // ── Step 1: fire POST /chat (Direct) or POST /run (RunPod) ────────────────
     let chatData: ChatApiResponse;
@@ -165,6 +165,8 @@ export class AiBuilderService {
       const payload: any = {
         message: prompt,
         ...(stack ? { stack } : {}),
+        ...(session_id ? { session_id } : {}),
+        ...(output_preference ? { output_preference } : {}),
       };
 
       // RunPod wraps the payload under `input` and accepts a `policy`

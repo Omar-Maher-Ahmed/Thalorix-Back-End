@@ -34,4 +34,14 @@ export class CreateProjectDto {
   @IsOptional()
   @IsMongoId()
   userId?: string;
+
+  @ApiPropertyOptional({ description: 'Existing session ID to continue discussion' })
+  @IsOptional()
+  @IsString()
+  session_id?: string;
+
+  @ApiPropertyOptional({ description: 'Output preference, e.g. "files"' })
+  @IsOptional()
+  @IsString()
+  output_preference?: string;
 }
