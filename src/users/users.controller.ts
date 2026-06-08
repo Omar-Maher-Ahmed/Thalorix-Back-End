@@ -52,6 +52,20 @@ export class UsersController {
     return this.usersService.getPendingFriendRequests(req.user?.userId);
   }
 
+  // ================= Blocked Users =================
+  @ApiOperation({
+    summary: 'Get my blocked users',
+    description: 'Returns the list of users blocked by the authenticated user',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: 'Blocked users retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @UseGuards(JwtAuthGuard)
+  @Get('me/blocked')
+  getBlockedUsers(@Request() req: any) {
+    return this.usersService.getBlockedUsers(req.user?.userId);
+  }
+
   // ================= Find One =================
   @ApiOperation({ summary: 'Get user by ID', description: 'Retrieves details of a specific user by ID' })
   @ApiBearerAuth()

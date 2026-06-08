@@ -194,6 +194,7 @@ export class UsersService {
   // ================= Social Connections =================
 
   async toggleFollow(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     if (requesterId === targetId) throw new BadRequestException('Cannot follow yourself');
 
     let target: any = await this.userModel.findById(targetId);
@@ -250,6 +251,7 @@ export class UsersService {
   }
 
   async getRelationship(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     const requester = await this.userModel.findById(requesterId).lean();
     if (!requester) {
       // If the requester is an Admin or guest, they don't have standard social relationships
@@ -282,6 +284,7 @@ export class UsersService {
   }
 
   async sendFriendRequest(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     if (requesterId === targetId) throw new BadRequestException('Cannot send friend request to yourself');
 
     const target = await this.userModel.findById(targetId);
@@ -310,6 +313,7 @@ export class UsersService {
   }
 
   async cancelFriendRequest(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     const reqObjId = new Types.ObjectId(requesterId);
     const targetObjId = new Types.ObjectId(targetId);
 
@@ -320,6 +324,7 @@ export class UsersService {
   }
 
   async acceptFriendRequest(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     const reqObjId = new Types.ObjectId(requesterId);
     const targetObjId = new Types.ObjectId(targetId);
 
@@ -345,6 +350,7 @@ export class UsersService {
   }
 
   async rejectFriendRequest(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     const reqObjId = new Types.ObjectId(requesterId);
     const targetObjId = new Types.ObjectId(targetId);
 
@@ -360,6 +366,7 @@ export class UsersService {
   }
 
   async blockUser(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     if (requesterId === targetId) throw new BadRequestException('Cannot block yourself');
 
     await this.userModel.findByIdAndUpdate(requesterId, {
@@ -375,6 +382,7 @@ export class UsersService {
   }
 
   async unblockUser(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     await this.userModel.findByIdAndUpdate(requesterId, {
       $pull: { blockedUsers: targetId }
     });
@@ -382,24 +390,28 @@ export class UsersService {
   }
 
   async getFriends(userId: string) {
+    if (!isValidObjectId(userId)) throw new BadRequestException('Invalid ID');
     const user = await this.userModel.findById(userId).populate('friends', 'name avatarUrl username').lean();
     if (!user) throw new NotFoundException('User not found');
     return user.friends;
   }
 
   async getFollowers(userId: string) {
+    if (!isValidObjectId(userId)) throw new BadRequestException('Invalid ID');
     const user = await this.userModel.findById(userId).populate('followers', 'name avatarUrl username').lean();
     if (!user) throw new NotFoundException('User not found');
     return user.followers;
   }
 
   async getFollowing(userId: string) {
+    if (!isValidObjectId(userId)) throw new BadRequestException('Invalid ID');
     const user = await this.userModel.findById(userId).populate('following', 'name avatarUrl username').lean();
     if (!user) throw new NotFoundException('User not found');
     return user.following;
   }
 
   async getMutualFriends(requesterId: string, targetId: string) {
+    if (!isValidObjectId(targetId) || !isValidObjectId(requesterId)) throw new BadRequestException('Invalid ID');
     const requester = await this.userModel.findById(requesterId).lean();
     const target = await this.userModel.findById(targetId).lean();
     if (!requester || !target) throw new NotFoundException('User not found');
@@ -413,6 +425,7 @@ export class UsersService {
   }
 
   async getSuggestions(userId: string) {
+    if (!isValidObjectId(userId)) throw new BadRequestException('Invalid ID');
     const user = await this.userModel.findById(userId).lean();
     if (!user) throw new NotFoundException('User not found');
 
@@ -433,10 +446,32 @@ export class UsersService {
   }
 
   async getPendingFriendRequests(userId: string) {
+    if (!isValidObjectId(userId)) throw new BadRequestException('Invalid ID');
     const reqObjId = new Types.ObjectId(userId);
     return this.friendRequestModel
       .find({ receiverId: reqObjId, status: 'pending' })
       .populate('senderId', 'name avatarUrl username')
       .lean();
+  }
+
+  // ================= Blocked Users =================
+  async getBlockedUsers(userId: string) {
+    if (!userId || !isValidObjectId(userId)) {
+      throw new BadRequestException('Invalid or missing user ID');
+    }
+
+    const user = await this.userModel
+      .findOne({ _id: new Types.ObjectId(userId), isDeleted: { $ne: true } })
+      .populate('blockedUsers', 'name avatarUrl username email')
+      .lean();
+
+    if (!user) throw new NotFoundException('User not found');
+
+    const blockedUsers = user.blockedUsers ?? [];
+
+    return {
+      total: blockedUsers.length,
+      data: blockedUsers,
+    };
   }
 }
