@@ -41,6 +41,14 @@ export class CommunityController {
     return this.service.getFeed();
   }
 
+  // 🟢 Get Top Posts
+  @ApiOperation({ summary: 'Get top 5 posts', description: 'Retrieves the top 5 posts sorted by number of likes' })
+  @ApiResponse({ status: 200, description: 'Top posts retrieved successfully' })
+  @Get('top-posts')
+  getTopPosts() {
+    return this.service.getTopPosts();
+  }
+
   // 🟢 Update Post
   @ApiOperation({ summary: 'Update a post', description: 'Updates an existing community post' })
   @ApiParam({ name: 'id', description: 'Post ID', type: String })

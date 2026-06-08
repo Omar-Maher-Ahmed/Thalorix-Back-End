@@ -33,6 +33,11 @@ export class CommunityService {
     return this.postModel.find().sort({ createdAt: -1 });
   }
 
+  // 🟢 Top Posts
+  async getTopPosts() {
+    return this.postModel.find().sort({ likesCount: -1 }).limit(5);
+  }
+
   // 🟢 Update Post
   async updatePost(postId: string, dto: CreatePostDto) {
     const post = await this.postModel.findByIdAndUpdate(
