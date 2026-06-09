@@ -63,8 +63,8 @@ interface ReadyResponse {
 
 // ─── Polling constants ────────────────────────────────────────────────────────
 
-const POLL_INTERVAL_MS  = 3_000;   // 3 s as documented
-const MAX_POLL_ATTEMPTS = 60;      // 60 × 3 s = 3 min hard cap
+const POLL_INTERVAL_MS = 3_000;   // 3 s as documented
+const MAX_POLL_ATTEMPTS = 6000;      // 6000 x 3 s = 5 hours hard cap (effectively no limit)
 
 // Terminal statuses that stop polling (covers both Direct and RunPod)
 const TERMINAL_STATUSES = new Set(['completed', 'done', 'failed', 'error', 'cancelled']);
@@ -94,7 +94,7 @@ export class AiBuilderService {
 
     if (this.mode === 'runpod') {
       const baseURL = this.config.get<string>('RUNPOD_BASE_URL');
-      const apiKey  = this.config.get<string>('RUNPOD_API_KEY');
+      const apiKey = this.config.get<string>('RUNPOD_API_KEY');
 
       this.http = axios.create({
         baseURL,
@@ -109,7 +109,7 @@ export class AiBuilderService {
       this.adminHttp = this.http;
     } else {
       // ── Direct HTTP ──────────────────────────────────────────────────────────
-      const baseURL  = this.config.get<string>('AI_BUILDER_API_URL') ?? 'http://127.0.0.1:8000';
+      const baseURL = this.config.get<string>('AI_BUILDER_API_URL') ?? 'http://127.0.0.1:8000';
       const adminKey = this.config.get<string>('AI_ADMIN_KEY');
 
       // Public client (no auth) — used for /chat, /upload, /job, /health, /ready
@@ -196,7 +196,8 @@ export class AiBuilderService {
 
     try {
       const payload: any = {
-        message: prompt,
+        message: prompt, // Keep for backward compatibility if needed
+        prompt: prompt, // Added for the new API
         ...(stack ? { stack } : {}),
         ...(session_id ? { session_id } : {}),
         ...(output_preference ? { output_preference } : {}),
@@ -216,7 +217,7 @@ export class AiBuilderService {
     }
 
     // Detect async job (either reply_type or job_id present)
-    const jobId     = this.mode === 'runpod' ? (chatData as any).id : chatData.job_id;
+    const jobId = this.mode === 'runpod' ? (chatData as any).id : chatData.job_id;
     const sessionId = this.mode === 'runpod' ? ((chatData as any).output?.session_id ?? (chatData as any).id) : chatData.session_id;
 
     if (!sessionId) {
@@ -230,10 +231,10 @@ export class AiBuilderService {
     // ── Step 2: persist skeleton project ─────────────────────────────────────
     const project = await this.projectModel.create({
       sessionId,
-      jobId:     jobId ?? null,
-      status:    jobId ? ProjectStatus.BUILDING : ProjectStatus.BUILDING,
-      stack:     stack ?? '',
-      userId:    userId ?? null,
+      jobId: jobId ?? null,
+      status: jobId ? ProjectStatus.BUILDING : ProjectStatus.BUILDING,
+      stack: stack ?? '',
+      userId: userId ?? null,
     });
 
     this.logger.log(`Project created [${project._id}] | job=${jobId} | session=${sessionId}`);
@@ -281,7 +282,7 @@ export class AiBuilderService {
         this.logger.warn(`Job ${jobId} terminal-failed. Errors: ${buildErrors.join(', ')}`);
 
         await this.projectModel.findByIdAndUpdate(projectId, {
-          status:     ProjectStatus.FAILED,
+          status: ProjectStatus.FAILED,
           buildErrors,
           jobId,
         });
@@ -299,19 +300,19 @@ export class AiBuilderService {
           ?? outputWrapper                          // Fallback: output itself
           ?? {};
 
-        this.logger.log(`Job ${jobId} reply_type=${result.reply_type} intent=${result.intent} files=${(result.files||[]).length} preview=${result.preview_url ?? 'none'}`);
+        this.logger.log(`Job ${jobId} reply_type=${result.reply_type} intent=${result.intent} files=${(result.files || []).length} preview=${result.preview_url ?? 'none'}`);
 
         // ── Chat reply: no build, just a text response ──────────────────────────
         if (result.reply_type === 'chat' || result.intent === 'general_chat') {
           this.logger.log(`Job ${jobId} → chat reply, storing as message.`);
           await this.projectModel.findByIdAndUpdate(projectId, {
-            status:      ProjectStatus.COMPLETED,
+            status: ProjectStatus.COMPLETED,
             projectName: 'Chat Response',
             jobId,
             buildErrors: [],
             files: [{
-              path:     '_chat_reply.md',
-              content:  result.reply ?? 'No reply.',
+              path: '_chat_reply.md',
+              content: result.reply ?? 'No reply.',
               language: 'markdown',
             }],
           });
@@ -323,8 +324,8 @@ export class AiBuilderService {
         // We still store them if present; otherwise the frontend should show the preview iframe
         const rawFiles = result.files ?? (jobData as any).files ?? [];
         const files: ProjectFile[] = rawFiles.map((f: any) => ({
-          path:     f.path,
-          content:  f.content,
+          path: f.path,
+          content: f.content,
           language: f.language ?? '',
         }));
 
@@ -334,8 +335,8 @@ export class AiBuilderService {
           ?? result.project_id
           ?? result.name
           ?? (result.session_id && result.session_id !== 'default-session'
-               ? `project-${(result.session_id as string).slice(0, 8)}`
-               : null)
+            ? `project-${(result.session_id as string).slice(0, 8)}`
+            : null)
           ?? `project-${Date.now()}`;
 
         const resolvedPreview = result.preview_url
@@ -347,8 +348,8 @@ export class AiBuilderService {
           : null;
 
         const updatePayload: any = {
-          status:      ProjectStatus.COMPLETED,
-          previewUrl:  resolvedPreview,
+          status: ProjectStatus.COMPLETED,
+          previewUrl: resolvedPreview,
           projectName: resolvedName,
           files,
           jobId,
@@ -370,7 +371,7 @@ export class AiBuilderService {
     // ── Timed out ─────────────────────────────────────────────────────────────
     this.logger.error(`Polling timed out for job ${jobId} after ${MAX_POLL_ATTEMPTS} attempts`);
     await this.projectModel.findByIdAndUpdate(projectId, {
-      status:      ProjectStatus.FAILED,
+      status: ProjectStatus.FAILED,
       buildErrors: ['Build timed out after maximum polling attempts'],
     });
   }
@@ -438,15 +439,21 @@ export class AiBuilderService {
     params?: Record<string, string>,
   ): Promise<any> {
     const url = `/project/${sessionId}/${encodeURIComponent(projectName)}/${subPath}`;
+    const baseURL = this.http.defaults?.baseURL || 'Unknown baseURL';
+    this.logger.log(`[Backend Download] received sessionId: ${sessionId}, received projectName: ${projectName}`);
+    this.logger.log(`[Backend Download] final upstream AI API URL: ${baseURL}${url}`);
 
     try {
-      const { data } = await this.http.get(url, {
+      const response = await this.http.get(url, {
         params,
         timeout: 90_000, // up to 90s for blocking calls
         responseType: subPath.includes('.zip') ? 'arraybuffer' : 'json',
       });
-      return data;
+      this.logger.log(`[Backend Download] upstream status code: ${response.status}`);
+      return response.data;
     } catch (err) {
+      const statusCode = err?.response?.status || 'Unknown';
+      this.logger.log(`[Backend Download] upstream status code: ${statusCode}`);
       const msg = err?.response?.data?.message ?? err.message;
       this.logger.error(`AI Builder project endpoint /${subPath} failed: ${msg}`);
       throw new InternalServerErrorException(`AI Builder error: ${msg}`);
@@ -490,7 +497,8 @@ export class AiBuilderService {
 
     try {
       const payload: any = {
-        message:    dto.prompt,
+        message: dto.prompt, // Keep for backward compatibility
+        prompt: dto.prompt, // Added for the new API
         session_id: existing.sessionId,
         output_preference: (dto as any).output_preference,
       };
@@ -511,10 +519,10 @@ export class AiBuilderService {
     }
 
     // Reset document to building state
-    existing.status      = ProjectStatus.BUILDING;
-    existing.jobId       = this.mode === 'runpod' ? (chatData as any).id : (chatData.job_id ?? null);
-    existing.previewUrl  = null;
-    existing.files       = [];
+    existing.status = ProjectStatus.BUILDING;
+    existing.jobId = this.mode === 'runpod' ? (chatData as any).id : (chatData.job_id ?? null);
+    existing.previewUrl = null;
+    existing.files = [];
     existing.buildErrors = [];
     await existing.save();
 
@@ -561,6 +569,7 @@ export class AiBuilderService {
           $project: {
             _id: 0,
             projectId: '$_id',
+            sessionId: '$sessionId',
             projectName: '$projectName',
             templateName: { $literal: 'N/A' }, // Auto-adapted: Templates are not linked to AI projects
             deploymentStatus: '$status',
