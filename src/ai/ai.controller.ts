@@ -12,6 +12,8 @@ import {
   UploadedFile,
   UseInterceptors,
   Res,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,6 +31,7 @@ import { AiBuilderService } from './ai.service';
 import { CreateProjectDto } from './dto/create-ai.dto';
 import { EditProjectDto } from './dto/edit-project.dto';
 import { DeployedProjectResponseDto } from './dto/deployed-project-response.dto';
+import { JwtAuthGuard } from '../auth/token/jwt-auth.guard';
 import {
   OutputAdapter,
   successResponse,
@@ -109,9 +112,13 @@ export class AiBuilderController {
   })
   @ApiResponse({ status: 500, description: 'AI Builder API unreachable or rejected' })
   @Post('chat')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.ACCEPTED)
-  async generateProject(@Body() dto: CreateProjectDto): Promise<OutputAdapter> {
+  async generateProject(@Body() dto: CreateProjectDto, @Req() req: any): Promise<OutputAdapter> {
     try {
+      const userId = req.user?.userId || req.user?._id;
+      if (userId) dto.userId = userId.toString();
+      
       const result = await this.aiBuilderService.generateProject(dto);
 
       if ((result as any).reply_type === 'chat') {
@@ -182,9 +189,11 @@ export class AiBuilderController {
   })
   @ApiResponse({ status: 200, description: 'Deployed projects retrieved successfully', type: [DeployedProjectResponseDto] })
   @Get('projects/deployed')
-  async getDeployedProjects(): Promise<OutputAdapter> {
+  @UseGuards(JwtAuthGuard)
+  async getDeployedProjects(@Req() req: any): Promise<OutputAdapter> {
     try {
-      const projects = await this.aiBuilderService.getDeployedProjects();
+      const userId = req.user.userId || req.user._id;
+      const projects = await this.aiBuilderService.getDeployedProjects(userId.toString());
       return successResponse(projects, 'Deployed projects retrieved successfully');
     } catch (err) {
       this.logger.error(`getDeployedProjects error: ${err.message}`);
@@ -204,9 +213,11 @@ export class AiBuilderController {
   @ApiResponse({ status: 200, description: 'Project retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Project not found' })
   @Get('projects/:id')
-  async getProject(@Param('id') id: string): Promise<OutputAdapter> {
+  @UseGuards(JwtAuthGuard)
+  async getProject(@Param('id') id: string, @Req() req: any): Promise<OutputAdapter> {
     try {
-      const project = await this.aiBuilderService.findProject(id);
+      const userId = req.user?.userId || req.user?._id;
+      const project = await this.aiBuilderService.findProject(id, userId?.toString());
       return successResponse(project);
     } catch (err) {
       this.logger.error(`getProject error: ${err.message}`);
@@ -227,13 +238,16 @@ export class AiBuilderController {
   @ApiResponse({ status: 202, description: 'Edit job queued successfully' })
   @ApiResponse({ status: 404, description: 'Project not found' })
   @Patch('projects/:id/edit')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.ACCEPTED)
   async editProject(
     @Param('id') id: string,
     @Body() dto: EditProjectDto,
+    @Req() req: any
   ): Promise<OutputAdapter> {
     try {
-      const result = await this.aiBuilderService.editProject(id, dto);
+      const userId = req.user?.userId || req.user?._id;
+      const result = await this.aiBuilderService.editProject(id, dto, userId?.toString());
 
       if ((result as any).reply_type === 'chat') {
         return successResponse(result, 'AI returned a direct chat response');

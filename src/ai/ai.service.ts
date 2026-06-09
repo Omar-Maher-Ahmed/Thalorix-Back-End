@@ -418,8 +418,11 @@ export class AiBuilderService {
 
   // ── 4. Retrieve Project ─────────────────────────────────────────────────────
 
-  async findProject(projectId: string): Promise<ProjectDocument> {
-    const project = await this.projectModel.findById(projectId).lean();
+  async findProject(projectId: string, userId?: string): Promise<ProjectDocument> {
+    const query: any = { _id: projectId };
+    if (userId) query.userId = userId;
+    
+    const project = await this.projectModel.findOne(query).lean();
     if (!project) {
       throw new NotFoundException(`Project ${projectId} not found`);
     }
@@ -486,10 +489,13 @@ export class AiBuilderService {
 
   // ── 6. Edit Flow ────────────────────────────────────────────────────────────
 
-  async editProject(projectId: string, dto: EditProjectDto): Promise<ProjectDocument | ChatApiResponse> {
-    const existing = await this.projectModel.findById(projectId);
+  async editProject(projectId: string, dto: EditProjectDto, userId?: string): Promise<ProjectDocument | ChatApiResponse> {
+    const query: any = { _id: projectId };
+    if (userId) query.userId = userId;
+
+    const existing = await this.projectModel.findOne(query);
     if (!existing) {
-      throw new NotFoundException(`Project ${projectId} not found`);
+      throw new NotFoundException(`Project ${projectId} not found or you don't have access`);
     }
 
     let chatData: ChatApiResponse;
@@ -539,10 +545,10 @@ export class AiBuilderService {
 
   // ── 7. Reporting ────────────────────────────────────────────────────────────
 
-  async getDeployedProjects(): Promise<any[]> {
+  async getDeployedProjects(userId: string): Promise<any[]> {
     try {
       const results = await this.projectModel.aggregate([
-        { $match: { status: ProjectStatus.COMPLETED } },
+        { $match: { status: ProjectStatus.COMPLETED, userId: userId } },
         {
           $addFields: {
             userIdObj: {
