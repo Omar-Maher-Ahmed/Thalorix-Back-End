@@ -142,9 +142,9 @@ async function bootstrap() {
     )
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  // const document = SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup('docs', app, document);
+  // SwaggerModule.setup('docs', app, document);
 
   await app.listen(process.env.PORT ?? 5001, '0.0.0.0');
   console.log(`Application is running on: ${await app.getUrl()}/docs`);
