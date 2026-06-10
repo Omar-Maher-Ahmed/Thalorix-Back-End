@@ -83,6 +83,10 @@ export class Project {
   /** Optional reference to the Thalorix user who owns this project. */
   @Prop({ default: null })
   userId: string | null;
+
+  /** The original prompt the user provided to generate the project. */
+  @Prop({ default: null })
+  prompt: string | null;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

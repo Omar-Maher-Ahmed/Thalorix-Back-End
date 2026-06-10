@@ -7,7 +7,7 @@ import { CommunityService } from './community.service';
 import { Post, PostSchema } from './schemas/post.schema';
 import { Comment, CommentSchema } from './schemas/comment.schema';
 import { PostLike, PostLikeSchema } from './schemas/post-like.schema';
-import { UsersModule } from '../users/users.module';
+
 import { AdminModule } from '../admin/admin.module';
 import { AuthModule } from '../auth/auth.module';
 
@@ -18,7 +18,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: Comment.name, schema: CommentSchema },
       { name: PostLike.name, schema: PostLikeSchema },
     ]),
-    UsersModule,
+
     AdminModule,
     AuthModule,
   ],

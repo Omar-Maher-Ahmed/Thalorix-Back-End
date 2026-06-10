@@ -20,9 +20,11 @@ import { SellersModule } from './sellers/sellers.module';
 import { CloudinaryModule } from './services/cloudinary/cloudinary.module';
 import { AuditLogModule } from './audit/audit-log.module';
 import { StripeModule } from './payment/stripe.module';
+import { SharedJwtModule } from './auth/shared-jwt.module';
 
 @Module({
   imports: [
+    SharedJwtModule,
     StripeModule,
     AuditLogModule,
     ThrottlerModule.forRoot([

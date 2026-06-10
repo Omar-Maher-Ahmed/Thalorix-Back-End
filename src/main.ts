@@ -35,17 +35,25 @@ async function bootstrap() {
 
         // check body before processing
         const body = buf.toString();
-        // if HTML tags
-        if (body.match(/<[^>]*>/g)) {
-          throw new BadRequestException('HTML tags are not allowed');
-        }
-        // if JavaScript events
-        if (body.match(/\bon\w+\s*=/gi)) {
-          throw new BadRequestException('Event handlers are not allowed');
-        }
-        // if javascript protocol
-        if (body.match(/javascript:/gi)) {
-          throw new BadRequestException('JavaScript protocol is not allowed');
+
+        // Skip HTML tag and code snippet checks for AI, Chat, and Community endpoints to allow code generation and sharing
+        if (
+          !url.includes('/ai/') &&
+          !url.includes('/chat/') &&
+          !url.includes('/community/')
+        ) {
+          // if HTML tags
+          if (body.match(/<[^>]*>/g)) {
+            throw new BadRequestException('HTML tags are not allowed');
+          }
+          // if JavaScript events
+          if (body.match(/\bon\w+\s*=/gi)) {
+            throw new BadRequestException('Event handlers are not allowed');
+          }
+          // if javascript protocol
+          if (body.match(/javascript:/gi)) {
+            throw new BadRequestException('JavaScript protocol is not allowed');
+          }
         }
       },
     }),
@@ -95,7 +103,7 @@ async function bootstrap() {
         if (!status || status === 500) {
           // Log the actual server error to the terminal to help developers debug
           console.error('🔥 Internal Server Error:', exception);
-          
+
           return response.status(500).json({
             statusCode: 500,
             message: 'Internal server error',
@@ -109,42 +117,41 @@ async function bootstrap() {
     })(),
   );
 
-  // 2. setup Swagger
-  const config = new DocumentBuilder()
-    .setTitle('Thalorix API Documentation')
-    .setDescription(
-      'Complete API documentation for the Thalorix platform. ' +
-      'Use the Authorize button to enter your JWT Bearer token before calling protected endpoints.',
-    )
-    .setVersion('1.0')
-    // Named scheme used by Orders controller (@ApiBearerAuth('access-token'))
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter your JWT access token (named scheme: access-token)',
-        in: 'header',
-      },
-      'access-token',
-    )
-    // Default scheme used by Auth, Chat, Community, Users, Marketplace, Admin controllers
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter your JWT access token',
-        in: 'header',
-      },
-    )
-    .build();
+  // 2. setup Swagger (only in non-production to save memory on Render/free-tier)
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Thalorix API Documentation')
+      .setDescription(
+        'Complete API documentation for the Thalorix platform. ' +
+        'Use the Authorize button to enter your JWT Bearer token before calling protected endpoints.',
+      )
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter your JWT access token (named scheme: access-token)',
+          in: 'header',
+        },
+        'access-token',
+      )
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter your JWT access token',
+          in: 'header',
+        },
+      )
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-
-  SwaggerModule.setup('docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   await app.listen(process.env.PORT ?? 5001, '0.0.0.0');
   console.log(`Application is running on: ${await app.getUrl()}/docs`);

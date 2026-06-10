@@ -235,6 +235,7 @@ export class AiBuilderService {
       status: jobId ? ProjectStatus.BUILDING : ProjectStatus.BUILDING,
       stack: stack ?? '',
       userId: userId ?? null,
+      prompt: prompt ?? null,
     });
 
     this.logger.log(`Project created [${project._id}] | job=${jobId} | session=${sessionId}`);

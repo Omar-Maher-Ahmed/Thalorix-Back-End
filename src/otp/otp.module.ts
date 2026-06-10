@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OtpService } from './otp.service';
 import { OtpController } from './otp.controller';
@@ -10,6 +10,7 @@ import { User, UserSchema } from '../users/schema/user.schema';
 import { Seller, SellerSchema } from '../sellers/schema/seller.schema';
 import { Admin, AdminSchema } from '../admin/schema/admin.schema';
 
+@Global()
 @Module({
   imports: [
     MongooseModule.forFeature([

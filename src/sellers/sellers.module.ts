@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { JwtModule } from '@nestjs/jwt';
+
 import { ConfigService } from '@nestjs/config';
 import { Seller, SellerSchema } from './schema/seller.schema';
 import { Review, ReviewSchema } from './schema/review.schema';
@@ -8,7 +8,7 @@ import { Template, TemplateSchema } from '../templates/schema/template.schema';
 import { Order, OrderSchema } from '../orders/schema/order.schema';
 import { SellersService } from './sellers.service';
 import { SellersController } from './sellers.controller';
-import { OtpModule } from '../otp/otp.module';
+
 import { CloudinaryModule } from '../services/cloudinary/cloudinary.module';
 
 @Module({
@@ -19,17 +19,9 @@ import { CloudinaryModule } from '../services/cloudinary/cloudinary.module';
       { name: Template.name, schema: TemplateSchema },
       { name: Order.name, schema: OrderSchema },
     ]),
-    OtpModule,
+
     CloudinaryModule,
-    JwtModule.registerAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') as string,
-        signOptions: {
-          expiresIn: Number(config.get('JWT_ACCESS_EXPIRES')) || 900, // Default 15m
-        },
-      }),
-    }),
+
   ],
   controllers: [SellersController],
   providers: [SellersService],
