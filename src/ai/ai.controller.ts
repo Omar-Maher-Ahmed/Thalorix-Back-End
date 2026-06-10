@@ -14,6 +14,7 @@ import {
   Res,
   UseGuards,
   Req,
+  HttpException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -135,9 +136,9 @@ export class AiBuilderController {
         },
         'Project build queued',
       );
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(`generateProject error: ${err.message}`);
-      return errorResponse(err.message);
+      throw new HttpException(errorResponse(err.message), err.status || HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -262,9 +263,9 @@ export class AiBuilderController {
         },
         'Project edit queued',
       );
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(`editProject error: ${err.message}`);
-      return errorResponse(err.message);
+      throw new HttpException(errorResponse(err.message), err.status || HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
