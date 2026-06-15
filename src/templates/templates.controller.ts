@@ -11,6 +11,7 @@ import {
   BadRequestException,
   UseInterceptors,
   UploadedFiles,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -32,6 +33,7 @@ import { UpdateTemplateStatusDto } from './dto/update-template-status.dto';
 import { UpdateTemplateStatusResponseDto } from './dto/update-template-status-response.dto';
 import { TemplateService } from './templates.service';
 import { CloudinaryService } from '../services/cloudinary/cloudinary.service';
+import { SellersService } from '../sellers/sellers.service';
 import { Types } from 'mongoose';
 
 @ApiTags('Templates')
@@ -40,6 +42,7 @@ export class TemplateController {
   constructor(
     private readonly templateService: TemplateService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly sellersService: SellersService,
   ) {}
 
   // ── POST /templates ────────────────────────────────────────────────────────
@@ -123,11 +126,16 @@ export class TemplateController {
 
     // Upload template file to Cloudinary if provided
     if (files?.fileUrl?.[0]) {
+      const file = files.fileUrl[0];
       const uploaded = await this.cloudinaryService.uploadFile(
-        files.fileUrl[0],
+        file,
         'templates',
       );
       dto.fileUrl = uploaded.url;
+      if (!dto.fileSize && file.size) {
+        const sizeInMb = file.size / (1024 * 1024);
+        dto.fileSize = `${sizeInMb.toFixed(1)} MB`;
+      }
     }
 
     // Upload thumbnail image to Cloudinary if provided
@@ -327,5 +335,64 @@ export class TemplateController {
       throw new BadRequestException('Invalid template ID');
     }
     return this.templateService.updateStatus(id, dto.status, req.user);
+  }
+
+  // ── GET /templates/:id/reviews ──────────────────────────────────────────────
+  @ApiOperation({
+    summary: 'Get template reviews by ID',
+    description: 'Retrieves reviews left for the seller/developer of this template.',
+  })
+  @ApiParam({ name: 'id', description: 'Template ID', type: String })
+  @ApiResponse({ status: 200, description: 'Template reviews retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid ID format' })
+  @ApiResponse({ status: 404, description: 'Template or Seller not found' })
+  @Get(':id/reviews')
+  async getReviews(@Param('id') id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid template ID');
+    }
+    const template = await this.templateService.findOne(id);
+    if (!template) {
+      throw new NotFoundException('Template not found');
+    }
+    const sellerId = (template as any).developerId?._id || (template as any).developerId;
+    if (!sellerId) {
+      throw new NotFoundException('Seller not found for this template');
+    }
+    return this.sellersService.getSellerReviews(sellerId.toString());
+  }
+
+  // ── POST /templates/:id/reviews ─────────────────────────────────────────────
+  @ApiOperation({
+    summary: 'Submit a template review',
+    description: 'Submits a review for the seller/developer of this template. Authenticated user role required.',
+  })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Template ID', type: String })
+  @ApiBody({ schema: { type: 'object', required: ['rating', 'comment'], properties: { rating: { type: 'number', example: 5 }, comment: { type: 'string', example: 'Great template!' } } } })
+  @ApiResponse({ status: 201, description: 'Review posted successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid ID format or payload' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Template or Seller not found' })
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/reviews')
+  async addReview(
+    @Param('id') id: string,
+    @Body() dto: { rating: number; comment: string },
+    @Req() req: any,
+  ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid template ID');
+    }
+    const template = await this.templateService.findOne(id);
+    if (!template) {
+      throw new NotFoundException('Template not found');
+    }
+    const sellerId = (template as any).developerId?._id || (template as any).developerId;
+    if (!sellerId) {
+      throw new NotFoundException('Seller not found for this template');
+    }
+    const userId = req.user?.userId || req.user?.sub || req.user?._id;
+    return this.sellersService.addSellerReview(userId.toString(), sellerId.toString(), dto);
   }
 }

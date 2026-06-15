@@ -6,6 +6,7 @@ import { Seller, SellerSchema } from './schema/seller.schema';
 import { Review, ReviewSchema } from './schema/review.schema';
 import { Template, TemplateSchema } from '../templates/schema/template.schema';
 import { Order, OrderSchema } from '../orders/schema/order.schema';
+import { User, UserSchema } from '../users/schema/user.schema';
 import { SellersService } from './sellers.service';
 import { SellersController } from './sellers.controller';
 
@@ -18,6 +19,7 @@ import { CloudinaryModule } from '../services/cloudinary/cloudinary.module';
       { name: Review.name, schema: ReviewSchema },
       { name: Template.name, schema: TemplateSchema },
       { name: Order.name, schema: OrderSchema },
+      { name: User.name, schema: UserSchema },
     ]),
 
     CloudinaryModule,

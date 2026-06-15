@@ -15,6 +15,7 @@ import { Seller, SellerDocument } from './schema/seller.schema';
 import { Review, ReviewDocument } from './schema/review.schema';
 import { Template } from '../templates/schema/template.schema';
 import { Order, OrderDocument, OrderStatus, PaymentStatus } from '../orders/schema/order.schema';
+import { User } from '../users/schema/user.schema';
 import { CreateSellerDto } from './dto/create-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
 import { UpdateSellerDto } from './dto/update-seller.dto';
@@ -38,6 +39,8 @@ export class SellersService {
     private readonly templateModel: Model<any>,
     @InjectModel(Order.name)
     private readonly orderModel: Model<OrderDocument>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<any>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
     private readonly auditLogService: AuditLogService,
@@ -373,7 +376,6 @@ export class SellersService {
 
     const reviews = await this.reviewModel
       .find({ sellerId: new Types.ObjectId(sellerId) })
-      .populate({ path: 'userId', select: 'name username avatarUrl' })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -408,7 +410,53 @@ export class SellersService {
       return mockReviewsData;
     }
 
-    return reviews;
+    // Extract all unique userId ObjectIds
+    const userIds = [...new Set(reviews.map(r => r.userId).filter(Boolean))];
+
+    // Bulk query users
+    const users = await this.userModel
+      .find({ _id: { $in: userIds } })
+      .select('name username avatarUrl email')
+      .lean();
+
+    const userMap = new Map(users.map(u => [u._id.toString(), u]));
+
+    // Find userIds not found in users collection
+    const missingUserIds = userIds.filter(id => !userMap.has(id.toString()));
+
+    if (missingUserIds.length > 0) {
+      // Bulk query missing IDs in sellers collection
+      const sellers = await this.sellerModel
+        .find({ _id: { $in: missingUserIds } })
+        .select('name logo storeName')
+        .lean();
+
+      for (const s of sellers) {
+        userMap.set(s._id.toString(), {
+          _id: s._id,
+          name: s.name || s.storeName || 'Seller',
+          username: s.storeName ? s.storeName.toLowerCase().replace(/\s+/g, '') : 'seller',
+          avatarUrl: s.logo || '/images/avatar.png',
+        });
+      }
+    }
+
+    // Map the user profiles back to reviews
+    const populatedReviews = reviews.map(review => {
+      const rawUserId = review.userId?.toString();
+      const userProfile = rawUserId ? userMap.get(rawUserId) : null;
+      return {
+        ...review,
+        userId: userProfile ? {
+          _id: userProfile._id,
+          name: userProfile.name,
+          username: userProfile.username || (userProfile.name ? userProfile.name.toLowerCase().replace(/\s+/g, '') : 'user'),
+          avatarUrl: userProfile.avatarUrl || (userProfile as any).avatar || '/images/avatar.png',
+        } : null,
+      };
+    });
+
+    return populatedReviews;
   }
 
   // ================= Add Seller Review =================
@@ -703,7 +751,6 @@ export class SellersService {
       // 2. Recent Reviews (Last 5 reviews left for this seller)
       this.reviewModel
         .find({ sellerId: sellerObjId })
-        .populate({ path: 'userId', select: 'name username avatarUrl email' })
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
@@ -810,9 +857,49 @@ export class SellersService {
       ]),
     ]);
 
+    // Resolve user/seller details for recentReviews dynamically
+    const reviewUserIds = [...new Set(recentReviews.map(r => r.userId).filter(Boolean))];
+    const reviewUsers = await this.userModel
+      .find({ _id: { $in: reviewUserIds } })
+      .select('name username avatarUrl email')
+      .lean();
+
+    const reviewUserMap = new Map(reviewUsers.map(u => [u._id.toString(), u]));
+    const missingReviewUserIds = reviewUserIds.filter(id => !reviewUserMap.has(id.toString()));
+
+    if (missingReviewUserIds.length > 0) {
+      const reviewSellers = await this.sellerModel
+        .find({ _id: { $in: missingReviewUserIds } })
+        .select('name logo storeName')
+        .lean();
+
+      for (const s of reviewSellers) {
+        reviewUserMap.set(s._id.toString(), {
+          _id: s._id,
+          name: s.name || s.storeName || 'Seller',
+          username: s.storeName ? s.storeName.toLowerCase().replace(/\s+/g, '') : 'seller',
+          avatarUrl: s.logo || '/images/avatar.png',
+        } as any);
+      }
+    }
+
+    const populatedRecentReviews = recentReviews.map(review => {
+      const rawUserId = review.userId?.toString();
+      const userProfile = rawUserId ? reviewUserMap.get(rawUserId) : null;
+      return {
+        ...review,
+        userId: userProfile ? {
+          _id: userProfile._id,
+          name: userProfile.name,
+          username: userProfile.username || (userProfile.name ? userProfile.name.toLowerCase().replace(/\s+/g, '') : 'user'),
+          avatarUrl: userProfile.avatarUrl || (userProfile as any).avatar || '/images/avatar.png',
+        } : null,
+      };
+    });
+
     return {
       recentSales,
-      recentReviews,
+      recentReviews: populatedRecentReviews,
       topProducts,
       recentSoldProducts,
     };
