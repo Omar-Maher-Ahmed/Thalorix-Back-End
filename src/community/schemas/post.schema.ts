@@ -9,8 +9,8 @@ export class Post {
   @Prop({ required: true })
   userId: string;
 
-  @Prop({ required: true })
-  content: string;
+  @Prop({ required: false })
+  content?: string;
 
   @Prop()
   image?: string;

@@ -30,7 +30,8 @@ export class CloudinaryController {
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
-          fileType: /(jpg|jpeg|png|webp|gif|mp4|webm|mov|ogg|mp3|wav|pdf|docx|txt)$/i,
+          fileType: /^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime|ogg)|audio\/(mpeg|mp3|wav|ogg|webm|x-wav|x-mp3)|application\/(pdf|vnd\.openxmlformats-officedocument\.wordprocessingml\.document|msword|ogg)|text\/plain)$/i,
+          skipMagicNumbersValidation: true,
         })
         .addMaxSizeValidator({
           // 500MB limit for large videos

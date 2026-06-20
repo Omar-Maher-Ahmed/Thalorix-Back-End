@@ -29,8 +29,23 @@ export class CommunityService {
   }
 
   // 🟢 Feed
-  async getFeed() {
-    return this.postModel.find().sort({ createdAt: -1 });
+  async getFeed(currentUserId?: string) {
+    const posts = await this.postModel.find().sort({ createdAt: -1 }).lean();
+
+    if (currentUserId && Types.ObjectId.isValid(currentUserId)) {
+      const userLikes = await this.postLikeModel.find({
+        userId: new Types.ObjectId(currentUserId),
+      }).select('postId').lean();
+
+      const likedPostIds = new Set(userLikes.map((like) => like.postId.toString()));
+
+      return posts.map((post) => ({
+        ...post,
+        liked: likedPostIds.has((post as any)._id.toString()),
+      }));
+    }
+
+    return posts;
   }
 
   // 🟢 Top Posts

@@ -9,6 +9,7 @@ import {
   Param,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -37,8 +38,8 @@ export class CommunityController {
   @ApiOperation({ summary: 'Get community feed', description: 'Retrieves the community feed' })
   @ApiResponse({ status: 200, description: 'Feed retrieved successfully' })
   @Get('feed')
-  getFeed() {
-    return this.service.getFeed();
+  getFeed(@Query('userId') userId?: string) {
+    return this.service.getFeed(userId);
   }
 
   // 🟢 Get Top Posts
