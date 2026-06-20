@@ -165,4 +165,25 @@ export class CommunityService {
       return { liked: true, message: 'Post liked successfully' };
     }
   }
+
+  // 🟢 Get Likes on a Post
+  async getLikes(postId: string) {
+    const post = await this.postModel.findById(postId);
+    if (!post) throw new NotFoundException('Post not found');
+
+    const likes = await this.postLikeModel
+      .find({ postId: new Types.ObjectId(postId) })
+      .populate('userId', 'name username avatarUrl avatar logo role')
+      .lean();
+
+    return likes.map((like: any) => ({
+      id: like._id,
+      user: {
+        id: like.userId?._id || like.userId?.id,
+        name: like.userId?.name || like.userId?.username || 'User',
+        avatar: like.userId?.avatarUrl || like.userId?.avatar || like.userId?.logo || '/images/avatar.png',
+        role: like.userId?.role || 'user',
+      }
+    }));
+  }
 }

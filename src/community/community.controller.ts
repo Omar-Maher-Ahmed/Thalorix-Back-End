@@ -137,4 +137,14 @@ export class CommunityController {
   ) {
     return this.service.toggleLike(postId, req.user.userId);
   }
+
+  // 🟢 Get Likes on a Post
+  @ApiOperation({ summary: 'Get likes for a post', description: 'Retrieves the list of users who liked a post' })
+  @ApiParam({ name: 'id', description: 'Post ID', type: String })
+  @ApiResponse({ status: 200, description: 'Likes retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Post not found' })
+  @Get('post/:id/likes')
+  getLikes(@Param('id') postId: string) {
+    return this.service.getLikes(postId);
+  }
 }
